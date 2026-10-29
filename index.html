@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ride the Bus</title>
+<style>
+  :root {
+    --felt: #0f5132;
+    --felt-dark: #0a3a24;
+    --gold: #f5c542;
+    --text: #f3f3f3;
+    --muted: #b9d3c4;
+    --red: #d62839;
+    --black: #1b1b1b;
+    --btn: #1f7a4d;
+    --btn-hover: #279160;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+    background: radial-gradient(circle at 50% 30%, var(--felt), var(--felt-dark));
+    display: flex;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  .wrap { width: 100%; max-width: 720px; }
+  h1 { text-align: center; margin: 0 0 4px; letter-spacing: 2px; color: var(--gold); }
+  .sub { text-align: center; color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+
+  .stats {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;
+  }
+  .stat {
+    background: rgba(0,0,0,.25); border-radius: 10px; padding: 10px; text-align: center;
+  }
+  .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+  .stat.hs .value { color: var(--gold); }
+
+  .cards {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;
+  }
+  .slot { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .slot .mult { font-size: 13px; color: var(--muted); }
+  .slot.active .mult { color: var(--gold); font-weight: 700; }
+  .card {
+    width: 100%; max-width: 120px; aspect-ratio: 5 / 7; border-radius: 10px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 8px; font-weight: 700; user-select: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    transition: transform .25s;
+  }
+  .card.back {
+    background: repeating-linear-gradient(45deg, #8b1e2d 0 8px, #a52a3a 8px 16px);
+    border: 4px solid #fff;
+  }
+  .card.empty { background: rgba(0,0,0,.18); border: 2px dashed rgba(255,255,255,.25); box-shadow: none; }
+  .card.face { background: #fff; animation: flip .3s ease; }
+  .card.face.red { color: var(--red); }
+  .card.face.black { color: var(--black); }
+  .card .corner { font-size: clamp(14px, 3.5vw, 20px); line-height: 1; }
+  .card .corner.br { align-self: flex-end; transform: rotate(180deg); }
+  .card .pip { align-self: center; font-size: clamp(28px, 8vw, 48px); line-height: 1; }
+  .card.win { outline: 4px solid var(--gold); }
+  .card.lose { outline: 4px solid var(--red); }
+  .card.tie { outline: 4px dashed #9ec5ff; opacity: .8; }
+  @keyframes flip { from { transform: rotateY(90deg); } to { transform: rotateY(0); } }
+
+  .msg {
+    text-align: center; min-height: 28px; font-size: 18px; font-weight: 600; margin-bottom: 14px;
+  }
+  .msg.good { color: var(--gold); }
+  .msg.bad { color: #ff8a8a; }
+
+  .panel { background: rgba(0,0,0,.25); border-radius: 12px; padding: 16px; }
+  .question { text-align: center; font-size: 16px; margin-bottom: 12px; color: var(--muted); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  button {
+    font: inherit; font-weight: 600; color: var(--text); background: var(--btn);
+    border: none; border-radius: 8px; padding: 12px 18px; cursor: pointer; min-width: 90px;
+    transition: background .15s, transform .05s;
+  }
+  button:hover:not(:disabled) { background: var(--btn-hover); }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  button.red { background: var(--red); }
+  button.black { background: #333; }
+  button.gold { background: var(--gold); color: #222; }
+  button.small { min-width: 0; padding: 8px 12px; }
+
+  .wager { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+  .wager-input { display: flex; align-items: center; gap: 8px; }
+  .wager-input input {
+    width: 120px; font: inherit; font-size: 20px; text-align: center; padding: 8px;
+    border-radius: 8px; border: none; background: #fff; color: #111;
+  }
+  input[type=range] { width: 100%; max-width: 360px; accent-color: var(--gold); }
+  .cashout { margin-top: 12px; text-align: center; }
+  .footer { text-align: center; margin-top: 16px; }
+  .link { background: none; color: var(--muted); text-decoration: underline; min-width: 0; padding: 4px; font-weight: 400; font-size: 13px; }
+  .link:hover:not(:disabled) { background: none; color: var(--text); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>RIDE THE BUS</h1>
+  <p class="sub">Guess 4 cards in a row. Cash out any time — or ride it all the way for 20×.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="label">Bankroll</div><div class="value" id="bank">$0</div></div>
+    <div class="stat"><div class="label">On the line</div><div class="value" id="pot">—</div></div>
+    <div class="stat hs"><div class="label">High score</div><div class="value" id="high">$0</div></div>
+  </div>
+
+  <div class="cards" id="cards"></div>
+  <div class="msg" id="msg"></div>
+
+  <div class="panel">
+    <!-- Betting phase -->
+    <div id="betPhase" class="wager">
+      <div class="question">Place your wager</div>
+      <div class="wager-input">
+        <button class="small" data-adj="half">½</button>
+        <input id="wager" type="number" min="1" step="1">
+        <button class="small" data-adj="double">2×</button>
+        <button class="small" data-adj="max">Max</button>
+      </div>
+      <input id="slider" type="range" min="1">
+      <button class="gold" id="deal">Deal</button>
+    </div>
+
+    <!-- Guessing phase -->
+    <div id="playPhase" class="hidden">
+      <div class="question" id="question"></div>
+      <div class="row" id="choices"></div>
+      <div class="cashout">
+        <button class="gold" id="cashout">Cash out</button>
+      </div>
+    </div>
+
+    <!-- Broke -->
+    <div id="brokePhase" class="hidden wager">
+      <div class="question">You're broke. The bus has left the station.</div>
+      <button class="gold" id="restart">Start over with $100</button>
+    </div>
+  </div>
+
+  <div class="footer"><button class="link" id="resetHigh">Reset high score</button></div>
+</div>
+
+<script>
+const START_MONEY = 100;
+const MULTS = [2, 3, 4, 20];
+const SUITS = [
+  { s: '♥', name: 'hearts', color: 'red' },
+  { s: '♦', name: 'diamonds', color: 'red' },
+  { s: '♣', name: 'clubs', color: 'black' },
+  { s: '♠', name: 'spades', color: 'black' },
+];
+const RANK_LABEL = { 11: 'J', 12: 'Q', 13: 'K', 14: 'A' };
+
+const $ = id => document.getElementById(id);
+
+function load(key, fallback) {
+  try { const v = localStorage.getItem(key); return v === null ? fallback : Number(v); }
+  catch { return fallback; }
+}
+function save(key, v) { try { localStorage.setItem(key, String(v)); } catch {} }
+
+let bank = load('rtb_bank', START_MONEY);
+let high = load('rtb_high', START_MONEY);
+let deck = [];
+let drawn = [];
+let wager = 0;
+let round = 0;     // 0..3 while playing
+let playing = false;
+
+function fmt(n) { return '$' + n.toLocaleString(); }
+
+function newDeck() {
+  const d = [];
+  for (const suit of SUITS) for (let r = 2; r <= 14; r++) d.push({ rank: r, ...suit });
+  for (let i = d.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [d[i], d[j]] = [d[j], d[i]];
+  }
+  return d;
+}
+
+function label(c) { return RANK_LABEL[c.rank] || String(c.rank); }
+
+function renderCards(resultIdx = -1, won = null) {
+  const el = $('cards');
+  el.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'slot' + (playing && i === round ? ' active' : '');
+    const card = document.createElement('div');
+    const c = drawn[i];
+    if (c) {
+      card.className = `card face ${c.color}`;
+      if (i === resultIdx) card.classList.add(won === null ? 'tie' : won ? 'win' : 'lose');
+      card.innerHTML = `<div class="corner">${label(c)}${c.s}</div><div class="pip">${c.s}</div><div class="corner br">${label(c)}${c.s}</div>`;
+    } else {
+      card.className = playing && i === round ? 'card back' : 'card empty';
+    }
+    const mult = document.createElement('div');
+    mult.className = 'mult';
+    mult.textContent = MULTS[i] + '×';
+    slot.append(card, mult);
+    el.append(slot);
+  }
+}
+
+function renderStats() {
+  $('bank').textContent = fmt(bank);
+  $('high').textContent = fmt(high);
+  $('pot').textContent = playing && round > 0 ? fmt(wager * MULTS[round - 1]) : (playing ? fmt(wager) : '—');
+}
+
+function setMsg(text, kind = '') {
+  const m = $('msg');
+  m.textContent = text;
+  m.className = 'msg ' + kind;
+}
+
+function updateHigh() {
+  if (bank > high) { high = bank; save('rtb_high', high); }
+  save('rtb_bank', bank);
+}
+
+const QUESTIONS = [
+  {
+    q: 'Red or black?',
+    opts: [{ k: 'red', t: 'Red', cls: 'red' }, { k: 'black', t: 'Black', cls: 'black' }],
+    check: (k, c) => c.color === k,
+  },
+  {
+    q: () => `Higher or lower than ${label(drawn[0])}?`,
+    opts: [{ k: 'higher', t: 'Higher ▲' }, { k: 'lower', t: 'Lower ▼' }],
+    tie: c => c.rank === drawn[0].rank,
+    check: (k, c) => k === 'higher' ? c.rank > drawn[0].rank : c.rank < drawn[0].rank,
+  },
+  {
+    q: () => {
+      const [a, b] = [drawn[0].rank, drawn[1].rank].sort((x, y) => x - y);
+      return `Inside or outside ${RANK_LABEL[a] || a} – ${RANK_LABEL[b] || b}?`;
+    },
+    opts: [{ k: 'inside', t: 'Inside' }, { k: 'outside', t: 'Outside' }],
+    tie: c => c.rank === drawn[0].rank || c.rank === drawn[1].rank,
+    check: (k, c) => {
+      const lo = Math.min(drawn[0].rank, drawn[1].rank);
+      const hi = Math.max(drawn[0].rank, drawn[1].rank);
+      return k === 'inside' ? c.rank > lo && c.rank < hi : c.rank < lo || c.rank > hi;
+    },
+  },
+  {
+    q: 'Pick the suit',
+    opts: SUITS.map(s => ({ k: s.name, t: s.s + ' ' + s.name[0].toUpperCase() + s.name.slice(1), cls: s.color })),
+    check: (k, c) => c.name === k,
+  },
+];
+
+function showPhase(name) {
+  $('betPhase').classList.toggle('hidden', name !== 'bet');
+  $('playPhase').classList.toggle('hidden', name !== 'play');
+  $('brokePhase').classList.toggle('hidden', name !== 'broke');
+}
+
+function renderQuestion() {
+  const Q = QUESTIONS[round];
+  $('question').textContent = typeof Q.q === 'function' ? Q.q() : Q.q;
+  const box = $('choices');
+  box.innerHTML = '';
+  for (const o of Q.opts) {
+    const b = document.createElement('button');
+    b.textContent = o.t;
+    if (o.cls) b.classList.add(o.cls);
+    b.onclick = () => guess(o.k);
+    box.append(b);
+  }
+  const cash = $('cashout');
+  cash.disabled = round === 0;
+  cash.textContent = round === 0 ? 'Cash out' : `Cash out ${fmt(wager * MULTS[round - 1])}`;
+}
+
+function syncWagerControls() {
+  const max = Math.max(1, bank);
+  const w = $('wager'), s = $('slider');
+  w.max = s.max = max;
+  let v = Math.floor(Number(w.value) || 0);
+  v = Math.min(Math.max(v, 1), max);
+  w.value = s.value = v;
+  $('deal').disabled = bank < 1;
+}
+
+function toBet() {
+  playing = false;
+  if (bank < 1) { showPhase('broke'); renderStats(); return; }
+  showPhase('bet');
+  syncWagerControls();
+  renderStats();
+}
+
+function deal() {
+  syncWagerControls();
+  wager = Number($('wager').value);
+  if (wager < 1 || wager > bank) return;
+  bank -= wager;
+  save('rtb_bank', bank);
+  deck = newDeck();
+  drawn = [];
+  round = 0;
+  playing = true;
+  setMsg('');
+  showPhase('play');
+  renderCards();
+  renderQuestion();
+  renderStats();
+}
+
+function guess(k) {
+  if (!deck.length) deck = newDeck();
+  const c = deck.pop();
+  drawn[round] = c;
+  const idx = round;
+  const tie = QUESTIONS[round].tie;
+  if (tie && tie(c)) {
+    setMsg(`Same rank (${label(c)}) — it's a push. Guess again for a new card.`);
+    renderCards(idx, null);
+    return;
+  }
+  const won = QUESTIONS[round].check(k, c);
+  if (!won) {
+    playing = false;
+    setMsg(`Wrong! You lost ${fmt(wager)}.`, 'bad');
+    renderCards(idx, false);
+    updateHigh();
+    toBet();
+    return;
+  }
+  round++;
+  if (round === 4) {
+    const payout = wager * MULTS[3];
+    bank += payout;
+    playing = false;
+    setMsg(`🚌 You rode the bus! +${fmt(payout)}`, 'good');
+    renderCards(idx, true);
+    updateHigh();
+    toBet();
+    return;
+  }
+  setMsg(`Correct! ${fmt(wager * MULTS[round - 1])} on the line.`, 'good');
+  renderCards(idx, true);
+  renderQuestion();
+  renderStats();
+}
+
+function cashOut() {
+  if (!playing || round === 0) return;
+  const payout = wager * MULTS[round - 1];
+  bank += payout;
+  setMsg(`Cashed out ${fmt(payout)} (profit ${fmt(payout - wager)}).`, 'good');
+  playing = false;
+  renderCards();
+  updateHigh();
+  toBet();
+}
+
+// Wager controls
+$('wager').addEventListener('input', () => { $('slider').value = $('wager').value; });
+$('wager').addEventListener('change', syncWagerControls);
+$('slider').addEventListener('input', () => { $('wager').value = $('slider').value; });
+document.querySelectorAll('[data-adj]').forEach(b => b.addEventListener('click', () => {
+  const w = $('wager');
+  const cur = Number(w.value) || 1;
+  if (b.dataset.adj === 'half') w.value = Math.floor(cur / 2);
+  if (b.dataset.adj === 'double') w.value = cur * 2;
+  if (b.dataset.adj === 'max') w.value = bank;
+  syncWagerControls();
+}));
+
+$('deal').onclick = deal;
+$('cashout').onclick = cashOut;
+$('restart').onclick = () => {
+  bank = START_MONEY;
+  save('rtb_bank', bank);
+  drawn = [];
+  setMsg('Fresh $100. Good luck.');
+  renderCards();
+  toBet();
+};
+$('resetHigh').onclick = () => {
+  if (!confirm('Reset your high score?')) return;
+  high = bank;
+  save('rtb_high', high);
+  renderStats();
+};
+
+$('wager').value = Math.min(10, Math.max(1, bank));
+renderCards();
+toBet();
+</script>
+</body>
+</html>
