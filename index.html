@@ -280,6 +280,16 @@
   .dpad { touch-action: none; }
   .dpad button { min-width: 58px; font-size: 20px; padding: 10px 0; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
 
+  /* Achievements */
+  .modal.ach { z-index: 9; }
+  .ach-list { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
+  .ach-list li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.08); }
+  .ach-list .ico { font-size: 24px; }
+  .ach-list .name { font-weight: 700; }
+  .ach-list .desc { font-size: 13px; color: var(--muted); line-height: 1.35; }
+  .ach-list li.got .name { color: var(--gold); }
+  .ach-list li:not(.got) { opacity: .6; }
+
   /* Bank */
   .bank-box { background: rgba(0,0,0,.25); border-radius: 10px; padding: 12px; margin-top: 10px; }
   .bank-box .name { font-weight: 700; }
@@ -310,6 +320,15 @@
     </div>
     <div class="cal-bar"><div class="cal-fill" id="calFill"></div></div>
     <div class="cal-note" id="calNote"></div>
+  </div>
+
+  <div class="modal ach hidden" id="achBox">
+    <div class="modal-box">
+      <div class="modal-icon">🏆</div>
+      <h2>Achievements</h2>
+      <ul class="ach-list" id="achList"></ul>
+      <button class="gold" id="achClose">Close</button>
+    </div>
   </div>
 
   <div class="modal traffic hidden" id="traffic">
@@ -503,6 +522,7 @@
   <div class="footer">
     <button class="link" id="startOver">Start over</button>
     <button class="link" id="resetHigh">Reset high score</button>
+    <button class="link" id="achBtn">🏆 Achievements</button>
   </div>
 </div>
 
@@ -748,6 +768,7 @@ function guess(k) {
     bank += payout;
     playing = false;
     setMsg(`${lucky ? '🍀 ' : ''}🚌 You rode the bus! +${fmt(payout)}`, 'good');
+    unlock('cards');
     renderCards(idx, true);
     updateHigh();
     toBet();
@@ -1053,11 +1074,11 @@ const CIGS_SLOWDOWN = 1.6;   // needle takes this much longer per turn
 // and a shift without a working one runs the needle faster (withdrawal)
 const CIG_TOLERANCE = 0.04;      // dud chance added per cigarette already smoked
 const CIG_TOLERANCE_MAX = 0.75;
-const WITHDRAWAL_PER_CIG = 0.03; // needle speed-up per cigarette smoked
-const WITHDRAWAL_MAX = 0.3;
+const WITHDRAWAL_MAX = 0.5;      // needle speed-up at its worst (+50%)
+const WITHDRAWAL_CIGS = 20;      // cigarettes smoked to reach it; it builds up evenly (2.5% each)
 let cigsSmoked = load('rtb_cigs', 0);
 const cigDudChance = () => Math.min(CIG_TOLERANCE_MAX, cigsSmoked * CIG_TOLERANCE);
-const withdrawal = () => Math.min(WITHDRAWAL_MAX, cigsSmoked * WITHDRAWAL_PER_CIG);
+const withdrawal = () => Math.min(WITHDRAWAL_MAX, cigsSmoked / WITHDRAWAL_CIGS * WITHDRAWAL_MAX);
 const pct = x => Math.round(x * 100) + '%';
 const WAGYU_PAY = 2;
 const WAGYU_ZONE = 0.6;      // zones shrink to this fraction
@@ -1279,6 +1300,7 @@ function startShift() {
   if (boosts.cigs) {
     cigWorked = Math.random() >= cigDudChance();
     cigsSmoked++;
+    if (cigsSmoked >= IRON_LUNG_CIGS) unlock('lung');
     save('rtb_cigs', cigsSmoked);
   } else if (cigsSmoked > 0) {
     shaky = withdrawal();
@@ -1311,7 +1333,7 @@ function nextBurger() {
     let dur = Math.max(700, 1150 - s * 50);
     if (shift.boosts.wagyu) good *= WAGYU_ZONE;
     if (shift.cigWorked) dur *= CIGS_SLOWDOWN;
-    if (shift.shaky) dur *= 1 - shift.shaky;
+    if (shift.shaky) dur /= 1 + shift.shaky;   // +50% speed means the turn takes 1/1.5 as long
     check = {
       start: 0.3 + Math.random() * 0.5,
       good,
@@ -1388,6 +1410,17 @@ function endShift(text, kind) {
   shift = null;
   check = null;
   setBMsg(`${text} ${settleCareer(done)}`, kind);
+  // Iron achievements: a whole shift at max withdrawal without burning a patty (burning none means it wasn't cut short)
+  if (done.burnt === 0 && done.shaky >= WITHDRAWAL_MAX) {
+    unlock('foal');
+    if (done.length === RANKS[RANKS.length - 1].burgers) {
+      unlock('horse');
+      if (done.greats === done.length) {
+        unlock('stallion');
+        if (done.boosts.wagyu) unlock('king');
+      }
+    }
+  }
   renderBurgerIdle();
   if (!unemployed) {
     $('bq').textContent = 'Work another shift, or ride back to the casino.';
@@ -1402,6 +1435,10 @@ $('flip').addEventListener('pointerdown', e => { e.preventDefault(); hit(e); });
 $('flip').addEventListener('click', e => { if (e.detail === 0) hit(e); });   // keyboard activation
 $('kitchen').addEventListener('pointerdown', e => { e.preventDefault(); hit(e); });
 document.addEventListener('keydown', e => {
+  if (!$('achBox').classList.contains('hidden')) {
+    if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') { e.preventDefault(); $('achClose').click(); }
+    return;
+  }
   if (modalOpen()) {
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); $('modalBtn').click(); }
     return;
@@ -2444,6 +2481,49 @@ $('deposit').onclick = deposit;
 $('withdraw').onclick = withdraw;
 $('loanBtn').onclick = loanAction;
 
+// ---------- Achievements ----------
+// Kept forever: Start over and eviction don't clear them, same as the high score
+const IRON_LUNG_CIGS = 20;
+const ACHIEVEMENTS = [
+  { id: 'cards', icon: '🃏', name: 'Let it Ride!', desc: 'Ride the bus all the way and win 20×.' },
+  { id: 'lung', icon: '🫁', name: 'Iron Lung', desc: `Get your cigarette count to ${IRON_LUNG_CIGS}.` },
+  { id: 'foal', icon: '🐴', name: 'Iron Foal', desc: `Finish a Burger Joint shift at max withdrawal (${WITHDRAWAL_CIGS}+ cigarettes smoked, none that shift) without burning a patty.` },
+  { id: 'horse', icon: '🐎', name: 'Iron Horse', desc: 'Iron Foal on a full 15-burger Kitchen Manager shift.' },
+  { id: 'stallion', icon: '🦄', name: 'Iron Stallion', desc: 'Iron Horse with every flip a great.' },
+  { id: 'king', icon: '👑', name: 'The Burger King', desc: 'Iron Stallion with 🥩 Wagyu on the grill.' },
+];
+
+function loadAch() {
+  try { const a = JSON.parse(localStorage.getItem('rtb_ach') || '[]'); return Array.isArray(a) ? a : []; }
+  catch { return []; }
+}
+let achieved = loadAch();   // ids of unlocked achievements
+
+function unlock(id) {
+  if (achieved.includes(id)) return;
+  achieved.push(id);
+  try { localStorage.setItem('rtb_ach', JSON.stringify(achieved)); } catch {}
+  const a = ACHIEVEMENTS.find(x => x.id === id);
+  [784, 988, 1175, 1568].forEach((f, i) => setTimeout(() => beep(f, 0.12, 'triangle', 0.1), i * 90));
+  showModal(a.icon, `🏆 ${a.name}`, `Achievement unlocked! ${a.desc}`, 'Nice', () => {});
+  renderAchBtn();
+}
+
+function renderAchBtn() { $('achBtn').textContent = `🏆 Achievements ${achieved.length}/${ACHIEVEMENTS.length}`; }
+
+function showAchievements() {
+  $('achList').innerHTML = ACHIEVEMENTS.map(a => {
+    const got = achieved.includes(a.id);
+    return `<li class="${got ? 'got' : ''}"><span class="ico">${got ? a.icon : '🔒'}</span>
+      <div><div class="name">${a.name}</div><div class="desc">${a.desc}</div></div></li>`;
+  }).join('');
+  $('achBox').classList.remove('hidden');
+  $('achClose').focus();
+}
+
+$('achBtn').onclick = showAchievements;
+$('achClose').onclick = () => $('achBox').classList.add('hidden');
+
 // ---------- Calendar and rent ----------
 function rentFor(m) { return Math.round(BASE_RENT * RENT_GROWTH ** (m - 1)); }
 
@@ -2576,6 +2656,8 @@ function showModal(icon, title, text, btn, onClose, kind = '') {
 
 $('wager').value = Math.min(10, Math.max(1, bank));
 showLocation();
+renderAchBtn();
+if (cigsSmoked >= IRON_LUNG_CIGS) unlock('lung');   // saves from before achievements existed
 // Page was closed with rent still due
 if (day >= DAYS_PER_MONTH) passTime(0);
 </script>
