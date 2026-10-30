@@ -137,6 +137,10 @@
   .modal-box h2 { margin: 10px 0 6px; color: var(--gold); }
   .modal-box p { margin: 0 0 18px; color: var(--muted); line-height: 1.45; }
   .modal.bad .modal-box { border-color: var(--red); }
+  .modal-input {
+    display: block; width: 100%; max-width: 220px; margin: -6px auto 16px; font: inherit; font-size: 18px; text-align: center;
+    padding: 8px; border-radius: 8px; border: none; background: #fff; color: #111;
+  }
   .modal.bad h2 { color: #ff8a8a; }
 
   /* Map */
@@ -304,6 +308,38 @@
   .odds { text-align: center; color: var(--gold); font-size: 13px; margin: -4px 0 10px; }
   .odds:empty { display: none; }
 
+  /* Internship and office job */
+  .slide { display: block; width: 100%; max-width: 270px; aspect-ratio: 1; margin: 0 auto 10px; border-radius: 8px; touch-action: none; cursor: pointer; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  .intern { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.1); }
+  .memory { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; max-width: 260px; margin: 0 auto 12px; touch-action: none; }
+  .mcard {
+    aspect-ratio: 3 / 4; min-width: 0; padding: 0; font-size: 26px; border-radius: 8px;
+    background: repeating-linear-gradient(45deg, #24527a 0 6px, #2d6396 6px 12px); border: 2px solid #fff;
+    -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none;
+  }
+  .mcard.open { background: #fff; color: #111; }
+  .mcard.done { background: #fff; opacity: .4; }
+
+  /* Save codes */
+  .modal.savebox { z-index: 9; }
+  .savebox textarea {
+    width: 100%; font: 12px ui-monospace, Menlo, monospace; border-radius: 8px; border: none; padding: 8px;
+    background: #fff; color: #111; resize: vertical; word-break: break-all; margin-bottom: 10px;
+  }
+  .savebox .save-sep { margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.12); }
+  .save-msg { min-height: 18px; margin-bottom: 10px; font-size: 14px; font-weight: 600; }
+  .save-msg.good { color: var(--gold); }
+  .save-msg.bad { color: #ff8a8a; }
+
+  /* Dating */
+  .toggle { background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.2); font-size: 14px; padding: 8px 12px; }
+  .toggle.on { border-color: #ff8fb1; color: #ff8fb1; }
+  .item .btns { display: flex; flex-direction: column; gap: 6px; width: 84px; }
+  .item .btns button { font-size: 13px; padding: 8px 6px; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #gfNote { color: #ff8fb1; margin-top: 4px; }
+  #gfNote:empty { display: none; }
+  #gfNote.low { color: #ff8a8a; font-weight: 600; }
+
   /* Achievements */
   .modal.ach { z-index: 9; }
   .ach-list { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
@@ -344,6 +380,7 @@
     </div>
     <div class="cal-bar"><div class="cal-fill" id="calFill"></div></div>
     <div class="cal-note" id="calNote"></div>
+    <div class="cal-note" id="gfNote"></div>
   </div>
 
   <div class="modal ach hidden" id="achBox">
@@ -370,6 +407,23 @@
     </div>
   </div>
 
+  <div class="modal savebox hidden" id="saveBox">
+    <div class="modal-box">
+      <div class="modal-icon">💾</div>
+      <h2>Save code</h2>
+      <p>Copy this code to keep your progress, or to move it to another device.</p>
+      <textarea id="saveOut" readonly rows="4" aria-label="Your save code"></textarea>
+      <div class="row"><button class="gold" id="saveCopy">Copy</button></div>
+      <p class="save-sep">Have a code? Paste it here to load it. This replaces your current game.</p>
+      <textarea id="saveIn" rows="3" placeholder="Paste a save code" aria-label="Save code to load"></textarea>
+      <div class="save-msg" id="saveMsg"></div>
+      <div class="row">
+        <button class="gold" id="saveLoad">Load</button>
+        <button id="saveClose">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal traffic hidden" id="traffic">
     <div class="modal-box">
       <h2>🚧 Traffic!</h2>
@@ -389,6 +443,7 @@
       <div class="modal-icon" id="modalIcon"></div>
       <h2 id="modalTitle"></h2>
       <p id="modalText"></p>
+      <input id="modalInput" class="modal-input hidden" maxlength="20" autocomplete="off" aria-label="Name">
       <button class="gold" id="modalBtn"></button>
     </div>
   </div>
@@ -437,9 +492,15 @@
       <div class="career"></div>
       <div class="question" id="hq"></div>
       <canvas id="flappy" class="flappy hidden" width="300" height="360"></canvas>
-      <div class="row"><button class="gold" id="apply">📨 Apply for a job</button></div>
+      <div class="row"><button class="gold" id="apply">📨 Apply for a job</button><button class="gold" id="interviewBtn"></button></div>
       <div class="shift-info" id="homeInfo"></div>
       <ul class="apps" id="apps"></ul>
+      <div class="intern hidden" id="officeBox">
+        <div class="jobcard" id="officeCard"></div>
+        <div class="memory hidden" id="memory"></div>
+        <div class="row"><button class="gold" id="workBtn"></button></div>
+        <div class="shift-info" id="officeInfo"></div>
+      </div>
     </div>
   </div>
 
@@ -453,6 +514,7 @@
       <div class="row">
         <button class="gold" id="gymPay"></button>
         <button class="gold" id="gymStart">🏃 Work out</button>
+        <button class="toggle" id="flirtBtn"></button>
       </div>
       <div class="shift-info" id="gymInfo"></div>
     </div>
@@ -478,7 +540,7 @@
       <div class="row" style="margin-top: 12px"><button class="gold" id="barBtn"></button></div>
     </div>
     <div class="panel" style="margin-top: 12px">
-      <div class="question">Drinks: luck for your next few casino hands (one at a time)</div>
+      <div class="question">Drinks: luck for your next few casino hands (one at a time). 💘 buys one for someone else instead: no luck for you, but a chance at romance (or a date, if you're taken).</div>
       <div class="drink-status" id="drinkStatus"></div>
       <div class="items" id="drinks"></div>
     </div>
@@ -497,8 +559,14 @@
         <button class="pad" data-pad="2">📗</button>
         <button class="pad" data-pad="3">📙</button>
       </div>
-      <div class="row"><button class="gold" id="study"></button></div>
+      <div class="row"><button class="gold" id="study"></button><button class="toggle" id="partyBtn"></button></div>
       <div class="shift-info" id="uniInfo"></div>
+      <div class="intern hidden" id="internBox">
+        <div class="question">💼 Internship</div>
+        <canvas id="slide" class="slide hidden"></canvas>
+        <div class="row"><button class="gold" id="internBtn"></button></div>
+        <div class="shift-info" id="internInfo"></div>
+      </div>
     </div>
   </div>
 
@@ -537,7 +605,7 @@
   <div id="storeView" class="hidden">
     <div class="msg" id="smsg"></div>
     <div class="panel">
-      <div class="question">Shift boosts, ID for the Bar, a credit card and protection</div>
+      <div class="question">Shift boosts, ID for the Bar, a credit card, protection and flowers</div>
       <div class="items" id="items"></div>
     </div>
   </div>
@@ -586,6 +654,7 @@
     <button class="link" id="startOver">Start over</button>
     <button class="link" id="resetHigh">Reset high score</button>
     <button class="link" id="achBtn">🏆 Achievements</button>
+    <button class="link" id="saveBtn">💾 Save code</button>
   </div>
 </div>
 
@@ -778,6 +847,8 @@ function toBet() {
     const broke = cardLimit ? "Your card's maxed out" : bank < 0 ? `You're ${fmt(-bank)} in the red` : "You're broke";
     $('brokeText').textContent = dest === 'bank'
       ? `${broke}, but you've got ${fmt(savings)} in savings. Ride to the Bank to withdraw some.`
+      : dest === 'home' && officeJob
+      ? `${broke}. Time to log some hours at your office job from Home.`
       : dest === 'home'
       ? `${broke}, and you're out of a job. Go home and apply for work.`
       : `${broke}. Time to earn your bus fare at the ${PLACES[dest].name}.`;
@@ -844,6 +915,7 @@ function guess(k) {
     playing = false;
     setMsg(`${lucky ? '🍀 ' : ''}🚌 You rode the bus! +${fmt(payout)}`, 'good');
     unlock('cards');
+    if (wager >= BIG_RIDE) unlock('moron');
     renderCards(idx, true);
     updateHigh();
     toBet();
@@ -894,11 +966,11 @@ document.querySelectorAll('[data-frac]').forEach(b => b.addEventListener('click'
 $('deal').onclick = deal;
 $('cashout').onclick = cashOut;
 // Where a broke player should go: savings to withdraw, a job they have, or Home to find one
-function brokeDest() { return savings >= 1 ? 'bank' : !unemployed ? 'burger' : barJob && hasId ? 'bar' : 'home'; }
+function brokeDest() { return savings >= 1 ? 'bank' : officeJob ? 'home' : !unemployed ? 'burger' : barJob && hasId ? 'bar' : 'home'; }
 $('goWork').onclick = () => travel(brokeDest());
 $('startOver').onclick = () => {
-  if (playing || shift || applying || simon || mix || working || traveling) return alert('Finish what you\'re doing first.');
-  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, no degrees, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
+  if (playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking()) return alert('Finish what you\'re doing first.');
+  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, no degrees, no girlfriend, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
   restartGame();
 };
 $('resetHigh').onclick = () => {
@@ -927,7 +999,7 @@ function placeBus(dest, x = PLACES[dest].x) {
 }
 
 function renderMap() {
-  const busy = playing || !!shift || traveling || applying || !!simon || !!mix || working;
+  const busy = playing || !!shift || traveling || applying || !!simon || !!mix || working || interning() || officeWorking();
   document.querySelectorAll('.loc').forEach(b => {
     b.classList.toggle('here', b.dataset.loc === loc);
     b.disabled = busy || b.dataset.loc === loc;
@@ -938,8 +1010,8 @@ function renderMap() {
     : traveling ? '🚌 On the road…'
     : playing ? 'Finish your hand before leaving'
     : shift ? 'Finish your shift before leaving'
-    : applying || simon || mix || working ? 'Finish what you\'re doing first'
-    : 'Tap a location to travel' + (trafficChance() ? ` · 🚧 ${pct(trafficChance())} traffic chance per stop` : '');
+    : applying || simon || mix || working || interning() || officeWorking() ? 'Finish what you\'re doing first'
+    : 'Tap a location to travel' + (trafficChance() ? ` · 🚧 ${pct(trafficChance())} traffic chance per stop${drink ? ' (🍺 buzzed)' : ''}` : '');
 }
 
 function travel(dest) {
@@ -948,10 +1020,11 @@ function travel(dest) {
     beep(140, 0.15, 'sawtooth', 0.08);
     return;
   }
-  if (dest === loc || playing || shift || traveling || applying || simon || mix || working) return;
+  if (dest === loc || playing || shift || traveling || applying || simon || mix || working || interning() || officeWorking()) return;
   traveling = true;
   flappy = null;   // a finished job application doesn't follow you around
   run = null;      // nor does a finished workout
+  slide = memo = null;   // or a finished internship try or office shift
   // Traffic is rolled once for each space between locations, in the order you pass them
   const order = Object.keys(PLACES), from = order.indexOf(loc), step = Math.sign(order.indexOf(dest) - from);
   for (let i = from; i !== order.indexOf(dest); i += step) {
@@ -1107,6 +1180,32 @@ function renderStore() {
   kb.onclick = buyClub;
   club.append(kb);
   box.append(club);
+  // Bouquet: saves your relationship from one breakup
+  const fl = document.createElement('div');
+  fl.className = 'item';
+  fl.innerHTML = `<div class="icon">💐</div>
+    <div><div><span class="name">Bouquet</span><span class="price">${fmt(BOUQUET_PRICE)}</span></div>
+    <div class="desc">When your girlfriend is about to dump you, the flowers change her mind. Used up when it saves you.</div>
+    <div class="owned">Owned: ${bouquets}</div></div>`;
+  const fb = document.createElement('button');
+  fb.className = 'gold';
+  fb.textContent = 'Buy';
+  fb.disabled = spendable() < BOUQUET_PRICE;
+  fb.onclick = buyBouquet;
+  fl.append(fb);
+  box.append(fl);
+}
+
+function buyBouquet() {
+  if (spendable() < BOUQUET_PRICE) return;
+  bank -= BOUQUET_PRICE;
+  save('rtb_bank', bank);
+  bouquets++;
+  save('rtb_bouquet', bouquets);
+  ching();
+  setSMsg('💐 Bought a bouquet. It\'ll save your relationship the next time she tries to leave.', 'good');
+  renderStore();
+  renderStats();
 }
 
 function buyCard() {
@@ -1536,11 +1635,19 @@ $('flip').addEventListener('pointerdown', e => { e.preventDefault(); hit(e); });
 $('flip').addEventListener('click', e => { if (e.detail === 0) hit(e); });   // keyboard activation
 $('kitchen').addEventListener('pointerdown', e => { e.preventDefault(); hit(e); });
 document.addEventListener('keydown', e => {
+  if (!$('saveBox').classList.contains('hidden')) {
+    if (e.code === 'Escape') $('saveClose').click();
+    return;
+  }
   if (!$('achBox').classList.contains('hidden')) {
     if (e.code === 'Space' || e.code === 'Enter' || e.code === 'Escape') { e.preventDefault(); $('achClose').click(); }
     return;
   }
   if (modalOpen()) {
+    if (document.activeElement === $('modalInput')) {
+      if (e.code === 'Enter') { e.preventDefault(); $('modalBtn').click(); }
+      return;
+    }
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); $('modalBtn').click(); }
     return;
   }
@@ -1573,10 +1680,10 @@ document.addEventListener('keydown', e => {
     if (working) jump(); else startWorkout();
     return;
   }
-  if (loc === 'home' && unemployed) {
+  if (loc === 'home' && (unemployed || applying || (officeOffer && !officeJob))) {
     e.preventDefault();
     if (e.repeat) return;
-    if (applying) flap(); else applyForJob();
+    if (applying) flap(); else if (unemployed) applyForJob(); else startInterview();
     return;
   }
   if (loc !== 'burger') return;
@@ -1621,17 +1728,23 @@ function setHMsg(text, kind = '') {
 
 function renderHome() {
   renderCareer();
-  $('hq').textContent = unemployed
-    ? `No job. Jump through ${hoopsNeeded} hoops to get hired at the Burger Joint.`
-    : `Home sweet home. You've got a job at the Burger Joint as a ${rankOf(xp).name}.`;
+  $('hq').textContent = (unemployed
+    ? `No Burger Joint job. Jump through ${hoopsNeeded} hoops to get hired there.`
+    : `Home sweet home. You've got a job at the Burger Joint as a ${rankOf(xp).name}.`)
+    + (officeJob ? ` 💼 Your office job is worked from here.` : '');
   const b = $('apply');
-  b.classList.toggle('hidden', !unemployed || applying);
+  b.classList.toggle('hidden', !unemployed || applying || officeWorking());
   b.textContent = apps.length ? '📨 Apply again' : '📨 Apply for a job';
-  fcan.classList.toggle('hidden', !unemployed || !flappy);
-  $('homeInfo').textContent = !unemployed ? ''
-    : applying ? 'Tap the game or press Space to flap.'
+  const ib = $('interviewBtn');
+  ib.classList.toggle('hidden', !officeOffer || officeJob || applying || officeWorking());
+  ib.textContent = `💼 Office interview (${officeHoops} hoops)`;
+  fcan.classList.toggle('hidden', !flappy);
+  $('homeInfo').textContent = applying ? 'Tap the game or press Space to flap.'
+    : officeOffer && !officeJob ? `💼 You have an office job offer: jump through ${officeHoops} hoops in the interview to get hired. ${DAYS_PER_EVENT} days a try.`
+    : !unemployed ? ''
     : `Each application takes ${DAYS_PER_EVENT} days.`;
   $('apps').innerHTML = unemployed ? apps.map((t, i) => `<li>Application #${apps.length - i}: ${t}</li>`).join('') : '';
+  renderOffice();
 }
 
 function spawnHoop(x) {
@@ -1642,11 +1755,12 @@ function spawnHoop(x) {
   flappy.hoops.push({ x, gapY: min + Math.random() * (max - min), passed: false });
 }
 
-function applyForJob() {
-  if (!unemployed || applying) return;
+function applyForJob(mode = 'burger') {
+  if (mode === 'burger' && !unemployed || applying || officeWorking()) return;
   beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
   applying = true;
-  flappy = { state: 'ready', y: FL.h / 2 - 20, vy: 0, t: 0, last: performance.now(), hoops: [], score: 0 };
+  // need = hoops to clear: the Burger Joint's count, or the office interview's
+  flappy = { state: 'ready', y: FL.h / 2 - 20, vy: 0, t: 0, last: performance.now(), hoops: [], score: 0, mode, need: mode === 'office' ? officeHoops : hoopsNeeded };
   spawnHoop(FL.w - 40);   // first hoop starts in view
   setHMsg('');
   renderHome();
@@ -1687,7 +1801,7 @@ function flappyLoop(now) {
         h.passed = true;
         f.score++;
         beep(1046, 0.08, 'triangle', 0.12);
-        if (f.score >= hoopsNeeded) return endApplication(true);
+        if (f.score >= f.need) return endApplication(true);
       }
     }
     if (f.y + FL.r > FL.h - FL.ground) { f.y = FL.h - FL.ground - FL.r; return endApplication(false); }
@@ -1735,7 +1849,7 @@ function drawFlappy() {
   c.font = 'bold 20px system-ui, sans-serif';
   c.textAlign = 'center';
   c.textBaseline = 'top';
-  c.fillText(`Hoops ${f.score}/${hoopsNeeded}`, FL.w / 2, 12);
+  c.fillText(`Hoops ${f.score}/${f.need}`, FL.w / 2, 12);
   const banner = f.state === 'ready' ? 'Tap or press Space to flap'
     : f.state === 'won' ? 'Hired! 🎉'
     : f.state === 'crashed' ? 'Crashed!' : '';
@@ -1754,6 +1868,22 @@ function endApplication(hired) {
   f.state = hired ? 'won' : 'crashed';
   drawFlappy();
   applying = false;
+  if (f.mode === 'office') {
+    if (hired) {
+      officeJob = true;
+      officeOffer = false;
+      officeXp = 0;
+      saveOffice();
+      setHMsg(`You jumped through ${f.need} hoops!`, 'good');
+      showModal('💼', "You're hired!", `The office is taking you on as ${/^[AEIOU]/.test(OFFICE_RANKS[0].name) ? 'an' : 'a'} ${OFFICE_RANKS[0].name}. Work shifts from Home.`, 'Nice', () => { flappy = null; renderHome(); });
+    } else {
+      beep(140, 0.3, 'sawtooth', 0.15);
+      setHMsg(`The interview went badly (${f.score}/${f.need} hoops). The offer still stands. Try again.`, 'bad');
+    }
+    renderHome();
+    passTime(DAYS_PER_EVENT);
+    return;
+  }
   if (hired) {
     unemployed = false;
     xp = 0;
@@ -1770,7 +1900,7 @@ function endApplication(hired) {
   passTime(DAYS_PER_EVENT);
 }
 
-$('apply').onclick = applyForJob;
+$('apply').onclick = () => applyForJob();
 fcan.addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
 // iOS only shows :active button presses when the page listens for touches
 document.addEventListener('touchstart', () => {}, { passive: true });
@@ -1911,12 +2041,21 @@ function renderDrinks() {
     row.innerHTML = `<div class="icon">${it.icon}</div>
       <div><div><span class="name">${it.name}</span><span class="price">${fmt(it.price)}</span></div>
       <div class="desc">${Math.round(it.luck * 100)}% chance to dodge a losing card, for your next ${it.hands} casino hands.</div></div>`;
+    const btns = document.createElement('div');
+    btns.className = 'btns';
     const b = document.createElement('button');
     b.className = 'gold';
     b.textContent = 'Buy';
     b.disabled = spendable() < it.price || !!drink || !!mix;
     b.onclick = () => buyDrink(k);
-    row.append(b);
+    // Buying one for someone else: no luck for you, but a shot at romance (or a date)
+    const f = document.createElement('button');
+    f.className = 'toggle';
+    f.textContent = gf ? `💕 ${gfName()}` : `💘 ${pct(DRINK_CHANCE[k])}`;
+    f.disabled = spendable() < it.price || !!mix;
+    f.onclick = () => buyDrinkFor(k);
+    btns.append(b, f);
+    row.append(btns);
     box.append(row);
   }
 }
@@ -2296,10 +2435,15 @@ function renderUni() {
   $('uniInfo').textContent = simon
     ? `Round ${simon.round} · Tap the books or press 1–4`
     : `${fmt(TUITION)} a session, ${DAYS_PER_EVENT} days each. Each round you repeat earns 1 XP.`;
+  renderInternship();
+  const pb = $('partyBtn');
+  pb.classList.toggle('hidden', !!simon);
+  pb.classList.toggle('on', partyOn);
+  pb.textContent = `${partyOn ? '✓' : '○'} 🎉 Party after (−${pct(PARTY_XP_CUT)} of your XP)`;
   const b = $('study');
   b.classList.toggle('hidden', !!simon);
   b.textContent = `📚 Study (${fmt(TUITION)})`;
-  b.disabled = done || spendable() < TUITION;
+  b.disabled = done || spendable() < TUITION || interning();
 }
 
 function lightPad(p, ms) {
@@ -2310,11 +2454,11 @@ function lightPad(p, ms) {
 }
 
 function startStudy() {
-  if (simon || hasDegree(major) || spendable() < TUITION) return;
+  if (simon || interning() || hasDegree(major) || spendable() < TUITION) return;
   beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
   bank -= TUITION;
   save('rtb_bank', bank);
-  simon = { seq: [Math.floor(Math.random() * 4)], round: 1, idx: 0, phase: 'showing', major };
+  simon = { seq: [Math.floor(Math.random() * 4)], round: 1, idx: 0, phase: 'showing', major, party: partyOn };
   setUMsg('');
   renderUni();
   renderStats();
@@ -2361,9 +2505,13 @@ function endStudy() {
   const s = simon;
   simon = null;
   beep(140, 0.3, 'sawtooth', 0.15);
-  const gained = s.round - 1, d = DEGREES[s.major];
-  degXp[s.major] = Math.min(DEGREE_XP, degXp[s.major] + gained);
-  setUMsg(`Wrong light! You repeated ${gained} round${gained === 1 ? '' : 's'}: +${gained} ${d.name} XP.`, gained ? 'good' : 'bad');
+  const rounds = s.round - 1, d = DEGREES[s.major];
+  // A party wipes out part of what you'd learned so far in this subject, then the session counts
+  const lost = s.party ? Math.ceil(degXp[s.major] * PARTY_XP_CUT) : 0;
+  const gained = rounds;
+  degXp[s.major] = Math.min(DEGREE_XP, degXp[s.major] - lost + gained);
+  setUMsg(`Wrong light! You repeated ${rounds} round${rounds === 1 ? '' : 's'}: +${gained} ${d.name} XP.`
+    + (s.party ? ` 🎉 Then a party${lost ? `, which cost you ${lost} XP` : ''}. ${dateAttempt('at a campus party', PARTY_CHANCE)}` : ''), gained ? 'good' : 'bad');
   if (degXp[s.major] >= DEGREE_XP && !hasDegree(s.major)) {
     degrees.push(s.major);
     showModal('🎓', 'You graduated!', `You earned a degree in ${d.name}. ${d.perk}`, 'Nice', () => {});
@@ -2379,6 +2527,330 @@ document.querySelectorAll('.pad').forEach(b => b.addEventListener('pointerdown',
   e.preventDefault();
   pressPad(Number(b.dataset.pad));
 }));
+
+// ---------- Internship (University) and office job (Home) ----------
+// With a degree you can try for an internship: a 3x3 sliding picture puzzle. Solving it gives a
+// chance at an office job, worked from Home as a 4x5 memory card game.
+const SLIDE_N = 3;
+const SLIDE_MOVES = 120;            // moves allowed to solve the puzzle
+const SLIDE_SIZE = 270;             // canvas size in CSS px
+const OFFICE_START_HOOPS = 10;      // the offer leads to an interview: jump through this many hoops
+const OFFICE_MISS = 5, OFFICE_MIN = 40;   // pay lost per mismatch, and the least a shift pays
+const OFFICE_XP_PERFECT = 12;       // XP for a shift with no mismatches, minus one per mismatch
+const OFFICE_BAD_MISSES = 15;       // more mismatches than this is a bad review
+const OFFICE_XP_PENALTY = 15;       // XP lost for a bad review; below 0 XP you're fired
+// Office ranks: pay = shift pay before mismatches; flip = ms a mismatched pair stays face up
+const OFFICE_RANKS = [
+  { name: 'Assistant', xp: 0, pay: 120, flip: 800 },
+  { name: 'Associate', xp: 20, pay: 150, flip: 700 },
+  { name: 'Senior Associate', xp: 50, pay: 180, flip: 600 },
+  { name: 'Manager', xp: 100, pay: 220, flip: 500 },
+  { name: 'Director', xp: 175, pay: 270, flip: 400 },
+];
+const DRUNK_SHUFFLE = 0.25;         // with a drink in you, chance a mismatch scrambles the unmatched cards
+const OFFICE_ICONS = ['📎', '📁', '☕', '🖇️', '📊', '💻', '🖨️', '📅', '✏️', '📞'];
+
+let officeJob = load('rtb_office', 0) === 1;
+let officeOffer = load('rtb_offer', 0) === 1;          // won an offer, still needs the interview
+let officeXp = load('rtb_offxp', 0);
+let officeHoops = load('rtb_offhoops', OFFICE_START_HOOPS);   // grows with each firing
+function saveOffice() { save('rtb_office', officeJob ? 1 : 0); save('rtb_offer', officeOffer ? 1 : 0); save('rtb_offxp', officeXp); save('rtb_offhoops', officeHoops); }
+const officeRank = () => OFFICE_RANKS[rankIndex(officeXp, OFFICE_RANKS)];
+let slide = null;   // { tiles: [tile at each position, 8 = blank], moves, state: 'playing'|'won'|'lost' }
+let memo = null;    // { cards: [{ icon, open, done }], first, lock, misses, pairs, state: 'playing'|'done' }
+const interning = () => !!slide && slide.state === 'playing';
+const officeWorking = () => !!memo && memo.state === 'playing';
+const officePay = misses => Math.max(OFFICE_MIN, officeRank().pay - OFFICE_MISS * misses);
+
+const scan = $('slide');
+const sctx = scan.getContext('2d');
+(function setupSlide() {
+  const dpr = window.devicePixelRatio || 1;
+  scan.width = SLIDE_SIZE * dpr;
+  scan.height = SLIDE_SIZE * dpr;
+  sctx.scale(dpr, dpr);
+})();
+// The picture: an office tower against a sky, drawn once and cut into tiles
+const slidePic = (() => {
+  const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1;
+  c.width = c.height = SLIDE_SIZE * dpr;
+  const g = c.getContext('2d');
+  g.scale(dpr, dpr);
+  const sky = g.createLinearGradient(0, 0, 0, SLIDE_SIZE);
+  sky.addColorStop(0, '#3b8fd9');
+  sky.addColorStop(1, '#f2b84b');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, SLIDE_SIZE, SLIDE_SIZE);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.font = '60px system-ui, sans-serif';
+  g.fillText('☀️', 50, 50);
+  g.fillText('☁️', 210, 60);
+  g.font = '170px system-ui, sans-serif';
+  g.fillText('🏢', SLIDE_SIZE / 2, SLIDE_SIZE / 2 + 30);
+  return c;
+})();
+
+const slideNeighbours = i => {
+  const r = Math.floor(i / SLIDE_N), c = i % SLIDE_N, out = [];
+  if (r > 0) out.push(i - SLIDE_N);
+  if (r < SLIDE_N - 1) out.push(i + SLIDE_N);
+  if (c > 0) out.push(i - 1);
+  if (c < SLIDE_N - 1) out.push(i + 1);
+  return out;
+};
+const solved = tiles => tiles.every((t, i) => t === i);
+
+function startInternship() {
+  if (slide && slide.state === 'playing' || officeJob || officeOffer || !degrees.length || simon) return;
+  beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
+  // Shuffle with random legal moves from the solved picture, so it's always solvable
+  const tiles = [...Array(SLIDE_N * SLIDE_N).keys()];
+  let blank = tiles.length - 1, prev = -1;
+  while (solved(tiles) || prev === -1) {
+    for (let k = 0; k < 80; k++) {
+      const opts = slideNeighbours(blank).filter(n => n !== prev);
+      const n = opts[Math.floor(Math.random() * opts.length)];
+      [tiles[blank], tiles[n]] = [tiles[n], tiles[blank]];
+      prev = blank;
+      blank = n;
+    }
+  }
+  slide = { tiles, moves: 0, state: 'playing' };
+  setUMsg('');
+  renderUni();
+  renderMap();
+  drawSlide();
+}
+
+// Tap a tile next to the gap to slide it in
+function slideTile(i) {
+  const s = slide;
+  if (!s || s.state !== 'playing') return;
+  const blank = s.tiles.indexOf(SLIDE_N * SLIDE_N - 1);
+  if (!slideNeighbours(blank).includes(i)) return;
+  [s.tiles[blank], s.tiles[i]] = [s.tiles[i], s.tiles[blank]];
+  s.moves++;
+  beep(500, 0.03, 'square', 0.03);
+  if (solved(s.tiles)) return endInternship(true);
+  if (s.moves >= SLIDE_MOVES) return endInternship(false);
+  drawSlide();
+  renderUni();
+}
+
+function drawSlide() {
+  const s = slide, g = sctx, t = SLIDE_SIZE / SLIDE_N, dpr = slidePic.width / SLIDE_SIZE;   // the picture's own scale
+  g.fillStyle = '#123';
+  g.fillRect(0, 0, SLIDE_SIZE, SLIDE_SIZE);
+  s.tiles.forEach((tile, pos) => {
+    if (tile === SLIDE_N * SLIDE_N - 1 && s.state === 'playing') return;   // the gap
+    const sx = (tile % SLIDE_N) * t, sy = Math.floor(tile / SLIDE_N) * t;
+    const dx = (pos % SLIDE_N) * t, dy = Math.floor(pos / SLIDE_N) * t;
+    g.drawImage(slidePic, sx * dpr, sy * dpr, t * dpr, t * dpr, dx + 1, dy + 1, t - 2, t - 2);
+    if (s.state === 'playing') {
+      g.fillStyle = 'rgba(0,0,0,.5)';
+      g.fillRect(dx + 4, dy + 4, 20, 18);
+      g.fillStyle = '#fff';
+      g.font = 'bold 13px system-ui, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(tile + 1, dx + 14, dy + 13);   // small numbers help on a busy picture
+    }
+  });
+  if (s.state !== 'playing') {
+    g.fillStyle = 'rgba(0,0,0,.6)';
+    g.fillRect(15, SLIDE_SIZE / 2 - 20, SLIDE_SIZE - 30, 40);
+    g.fillStyle = s.state === 'won' ? '#f5c542' : '#ff8a8a';
+    g.font = 'bold 18px system-ui, sans-serif';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(s.state === 'won' ? 'Solved! 🎉' : 'Out of moves', SLIDE_SIZE / 2, SLIDE_SIZE / 2);
+  }
+}
+
+function endInternship(won) {
+  const s = slide;
+  s.state = won ? 'won' : 'lost';
+  drawSlide();
+  if (!won) {
+    beep(140, 0.3, 'sawtooth', 0.15);
+    setUMsg(`Out of moves. The internship went to someone else. Try again.`, 'bad');
+  } else {
+    // Solving always earns the interview
+    officeOffer = true;
+    saveOffice();
+    beep(1046, 0.1, 'triangle', 0.12);
+    setUMsg(`Solved in ${s.moves} moves.`, 'good');
+    showModal('💼', 'Interview!', `The internship went great, and they want to interview you for an office job. Go Home and jump through ${officeHoops} hoops to get hired. Office shifts start at ${fmt(OFFICE_RANKS[0].pay)} and pay more as you're promoted.`, 'Nice', () => {});
+  }
+  renderUni();
+  renderMap();
+  passTime(DAYS_PER_EVENT);
+  renderUni();
+}
+
+function renderInternship() {
+  const show = degrees.length > 0 && !officeJob && !officeOffer;
+  $('internBox').classList.toggle('hidden', !show && !(slide && slide.state !== 'playing'));
+  const playing = slide && slide.state === 'playing';
+  scan.classList.toggle('hidden', !slide);
+  const b = $('internBtn');
+  b.classList.toggle('hidden', playing || officeJob || officeOffer);
+  b.textContent = slide ? '💼 Try again' : '💼 Try for an internship';
+  b.disabled = !!simon;
+  $('internInfo').textContent = officeJob ? '💼 You have the office job. Work it from Home.'
+    : officeOffer ? `💼 You have an offer. Go Home for the interview (${officeHoops} hoops).`
+    : playing ? `Moves ${slide.moves} / ${SLIDE_MOVES} · Tap a tile next to the gap to slide it`
+    : `Unscramble the picture in ${SLIDE_MOVES} moves to earn an interview for an office job. ${DAYS_PER_EVENT} days.`;
+}
+
+// ---------- Office job: a memory card game ----------
+function renderOffice() {
+  $('officeBox').classList.toggle('hidden', !officeJob);
+  if (!officeJob) return;
+  const i = rankIndex(officeXp, OFFICE_RANKS), r = OFFICE_RANKS[i], next = OFFICE_RANKS[i + 1];
+  $('officeCard').innerHTML = careerCardHTML(`💼 ${r.name}`, next ? `XP ${officeXp} / ${next.xp}` : `XP ${officeXp} · top rank`,
+    next ? (officeXp - r.xp) / (next.xp - r.xp) * 100 : 100,
+    `${fmt(r.pay)} a shift, −${fmt(OFFICE_MISS)} per mismatch` + (next ? ` · Next: ${next.name} (${fmt(next.pay)})` : '')
+    + `. XP: ${OFFICE_XP_PERFECT} minus mismatches. Over ${OFFICE_BAD_MISSES} mismatches is a bad review (−${OFFICE_XP_PENALTY} XP); below 0 XP you're fired.`);
+  const playing = memo && memo.state === 'playing';
+  $('memory').classList.toggle('hidden', !memo);
+  $('workBtn').classList.toggle('hidden', playing);
+  $('workBtn').textContent = memo ? '💼 Work another shift' : '💼 Go to work';
+  $('workBtn').disabled = applying;
+  $('officeInfo').textContent = playing ? `Pairs ${memo.pairs}/${OFFICE_ICONS.length} · Mismatches ${memo.misses} · Pay so far ${fmt(officePay(memo.misses))}`
+    : `A shift takes ${DAYS_PER_EVENT} days.` + (drink ? ` ${DRINKS[drink.k].icon} You've been drinking: mismatches may shuffle the cards.` : '');
+  renderMemory();
+}
+
+function renderMemory() {
+  const box = $('memory');
+  if (!memo) { box.innerHTML = ''; return; }
+  box.innerHTML = '';
+  memo.cards.forEach((c, i) => {
+    const b = document.createElement('button');
+    b.className = 'mcard' + (c.open || c.done ? ' open' : '') + (c.done ? ' done' : '');
+    b.textContent = c.open || c.done ? c.icon : '';
+    b.addEventListener('pointerdown', e => { e.preventDefault(); flipCard(i); });
+    box.append(b);
+  });
+}
+
+function startOffice() {
+  if (!officeJob || (memo && memo.state === 'playing')) return;
+  beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
+  const cards = [...OFFICE_ICONS, ...OFFICE_ICONS].map(icon => ({ icon, open: false, done: false }));
+  for (let i = cards.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [cards[i], cards[j]] = [cards[j], cards[i]];
+  }
+  memo = { cards, first: null, lock: false, misses: 0, pairs: 0, state: 'playing' };
+  setHMsg('');
+  renderOffice();
+  renderMap();
+}
+
+function flipCard(i) {
+  const m = memo;
+  if (!m || m.state !== 'playing' || m.lock) return;
+  const c = m.cards[i];
+  if (c.open || c.done) return;
+  c.open = true;
+  beep(600, 0.03, 'square', 0.03);
+  if (m.first === null) { m.first = i; renderMemory(); return; }
+  const a = m.cards[m.first];
+  m.first = null;
+  if (a.icon === c.icon) {
+    a.done = c.done = true;
+    a.open = c.open = false;
+    m.pairs++;
+    beep(988, 0.08, 'triangle', 0.1);
+    if (m.pairs === OFFICE_ICONS.length) return endOffice();
+    renderOffice();
+    return;
+  }
+  // Mismatch: show both for a moment, then turn them back over
+  m.misses++;
+  m.lock = true;
+  renderOffice();
+  setTimeout(() => {
+    if (memo !== m) return;
+    a.open = c.open = false;
+    m.lock = false;
+    if (drink && Math.random() < DRUNK_SHUFFLE) shuffleUnmatched(m);
+    renderOffice();
+  }, officeRank().flip);   // higher ranks give you less time to memorise
+}
+
+// Drinking on the job: the cards you haven't matched swap places, so what you memorised is wrong
+function shuffleUnmatched(m) {
+  const idx = m.cards.map((c, i) => c.done ? -1 : i).filter(i => i >= 0);
+  const icons = idx.map(i => m.cards[i].icon);
+  for (let i = icons.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [icons[i], icons[j]] = [icons[j], icons[i]];
+  }
+  idx.forEach((ci, k) => { m.cards[ci].icon = icons[k]; });
+  setHMsg(`${DRINKS[drink.k].icon} Whoa, the cards got shuffled. Maybe don't drink on the job.`, 'bad');
+  beep(250, 0.2, 'sawtooth', 0.08);
+}
+
+function endOffice() {
+  const m = memo;
+  m.state = 'done';
+  const pay = officePay(m.misses);
+  bank += pay;
+  updateHigh();
+  beep(1318, 0.15, 'triangle', 0.12);
+  setHMsg(`Shift done with ${m.misses} mismatch${m.misses === 1 ? '' : 'es'}. +${fmt(pay)}. ${settleOffice(m.misses)}`, m.misses > OFFICE_BAD_MISSES ? 'bad' : 'good');
+  renderOffice();
+  renderMap();
+  renderStats();
+  passTime(DAYS_PER_EVENT);
+}
+
+// Office XP for a shift; returns a short line. Rank changes and firing get a popup.
+function settleOffice(misses) {
+  const before = rankIndex(officeXp, OFFICE_RANKS);
+  let line;
+  if (misses > OFFICE_BAD_MISSES) {
+    officeXp -= OFFICE_XP_PENALTY;
+    line = `Bad review: −${OFFICE_XP_PENALTY} XP.`;
+  } else {
+    const gained = Math.max(0, OFFICE_XP_PERFECT - misses);
+    officeXp += gained;
+    line = gained ? `+${gained} XP.` : 'No XP.';
+  }
+  if (officeXp < 0) {
+    officeJob = false;
+    officeXp = 0;
+    const extra = EXTRA_HOOPS[0] + Math.floor(Math.random() * (EXTRA_HOOPS[1] - EXTRA_HOOPS[0] + 1));
+    officeHoops += extra;
+    showModal('📋', "You're fired!", `Too many sloppy days at the office. To get back in you'll need another internship, then ${officeHoops} hoops (+${extra}) in the interview.`, 'OK', () => renderHome(), 'bad');
+  } else {
+    const after = rankIndex(officeXp, OFFICE_RANKS);
+    if (after > before) showModal('⭐', 'Promoted!', `You're now ${/^[AEIOU]/.test(OFFICE_RANKS[after].name) ? 'an' : 'a'} ${OFFICE_RANKS[after].name}. Shifts pay ${fmt(OFFICE_RANKS[after].pay)}, but mismatched cards flip back faster.`, 'Nice', () => {});
+    else if (after < before) showModal('📉', 'Demoted', `You're back to ${OFFICE_RANKS[after].name}.`, 'OK', () => {}, 'bad');
+  }
+  saveOffice();
+  return line;
+}
+
+function startInterview() {
+  if (!officeOffer || officeJob || applying) return;
+  applyForJob('office');
+}
+
+$('interviewBtn').onclick = startInterview;
+$('internBtn').onclick = startInternship;
+$('workBtn').onclick = startOffice;
+scan.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (!slide) return;
+  const r = scan.getBoundingClientRect();
+  const c = Math.floor((e.clientX - r.left) / r.width * SLIDE_N), row = Math.floor((e.clientY - r.top) / r.height * SLIDE_N);
+  slideTile(Math.min(SLIDE_N - 1, row) * SLIDE_N + Math.min(SLIDE_N - 1, c));
+});
 
 // ---------- Muggings: rock, paper, scissors on the way to the Bank or Bar ----------
 const MUG_FROM = 3;             // no muggings before this month
@@ -2432,6 +2904,7 @@ function throwHand(k) {
     beep(140, 0.35, 'sawtooth', 0.15);
     $('mugResult').textContent = `${shown} They took ${fmt(mug.take)}.`;
     $('mugResult').className = 'bad';
+    mug.robbed = true;
   }
   if (mug.done) {
     $('mugThrows').classList.add('hidden');
@@ -2456,9 +2929,10 @@ function buyClub() {
 document.querySelectorAll('[data-throw]').forEach(b => b.addEventListener('click', () => throwHand(b.dataset.throw)));
 $('mugDone').onclick = () => {
   $('mugBox').classList.add('hidden');
-  const done = mug.onDone;
+  const { onDone, robbed } = mug;
   mug = null;
-  done();
+  onDone();
+  if (robbed && gf) maybeDumped(MUG_DUMP, dumpLine('mugged'));
 };
 
 // ---------- Gym: membership and a dodging workout ----------
@@ -2509,6 +2983,10 @@ function renderGym() {
   $('gymPay').textContent = `Pay ${fmt(GYM_FEE)}`;
   $('gymPay').disabled = spendable() < GYM_FEE;
   $('gymStart').classList.toggle('hidden', !paid || working);
+  const fb = $('flirtBtn');
+  fb.classList.toggle('hidden', !paid || working);
+  fb.classList.toggle('on', flirtOn);
+  fb.textContent = `${flirtOn ? '✓' : '○'} 😉 Flirt (half the benefit, ${FLIRT_MIN}+ dodges)`;
   $('gymStart').textContent = run ? '🏃 Work out again' : '🏃 Work out';
   rcan.classList.toggle('hidden', !paid || !run);
   $('gymInfo').textContent = !paid ? (spendable() < GYM_FEE ? `You need ${fmt(GYM_FEE)}. Come back when you have it.` : '')
@@ -2533,7 +3011,7 @@ function startWorkout() {
   if (!gymPaid() || working) return;
   beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
   working = true;
-  run = { state: 'ready', y: 0, vy: 0, t: 0, last: performance.now(), speed: RUN.speed, next: 1.2, things: [], dodged: 0 };
+  run = { state: 'ready', y: 0, vy: 0, t: 0, last: performance.now(), speed: RUN.speed, next: 1.2, things: [], dodged: 0, flirt: flirtOn };
   setGMsg('');
   renderGym();
   renderMap();
@@ -2585,7 +3063,7 @@ function runLoop(now) {
       if (!th.passed && th.x + RUN.size / 2 < pL) {
         th.passed = true;
         r.dodged++;
-        if (r.dodged % dodgesPerCig() === 0) beep(1046, 0.1, 'triangle', 0.12);
+        if (r.dodged % (dodgesPerCig() * (r.flirt ? 2 : 1)) === 0) beep(1046, 0.1, 'triangle', 0.12);
       }
     }
     r.things = r.things.filter(th => th.x > -RUN.size);
@@ -2619,7 +3097,7 @@ function drawRunner() {
   c.fillStyle = '#fff';
   c.font = 'bold 16px system-ui, sans-serif';
   c.textBaseline = 'top';
-  c.fillText(`Dodged ${r.dodged} · −${Math.floor(r.dodged / dodgesPerCig())} 🚬`, RUN.w / 2, 10);
+  c.fillText(`Dodged ${r.dodged} · −${Math.floor(r.dodged / (dodgesPerCig() * (r.flirt ? 2 : 1)))} 🚬`, RUN.w / 2, 10);
   const banner = r.state === 'ready' ? 'Tap or press Space to start' : r.state === 'over' ? 'Ouch! Workout over' : '';
   if (banner) {
     c.fillStyle = 'rgba(0,0,0,.55)';
@@ -2637,13 +3115,16 @@ function endWorkout() {
   drawRunner();
   working = false;
   beep(140, 0.25, 'sawtooth', 0.12);
-  const quit = Math.min(cigsSmoked, Math.floor(r.dodged / dodgesPerCig()));
+  const per = dodgesPerCig() * (r.flirt ? 2 : 1);   // flirting means half the workout
+  const quit = Math.min(cigsSmoked, Math.floor(r.dodged / per));
   cigsSmoked -= quit;
   save('rtb_cigs', cigsSmoked);
-  setGMsg(quit
+  setGMsg((quit
     ? `Dodged ${r.dodged}! Your cigarette count dropped by ${quit} to ${cigsSmoked}.`
-    : r.dodged >= dodgesPerCig() ? `Dodged ${r.dodged}! You're already smoke-free.`
-    : `Dodged ${r.dodged}. Get ${dodgesPerCig()} to make a dent in the habit.`, quit ? 'good' : '');
+    : r.dodged >= per ? `Dodged ${r.dodged}! You're already smoke-free.`
+    : `Dodged ${r.dodged}. Get ${per} to make a dent in the habit.`)
+    + (!r.flirt ? '' : r.dodged >= FLIRT_MIN ? ` 😉 ${dateAttempt('at the Gym', FLIRT_CHANCE)}`
+      : ` 😉 Nobody was impressed. Dodge at least ${FLIRT_MIN} to turn heads.`), quit ? 'good' : '');
   renderGym();
   renderMap();
   passTime(DAYS_PER_EVENT);
@@ -2677,9 +3158,11 @@ const HOPS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 let crossing = null;   // { dest, state: 'playing'|'won'|'crashed', col, row, last, lanes: [{ row, dir, speed, cars: [{ x, w, icon }] }] }
 
 const placeName = k => k === 'home' ? 'home' : `the ${PLACES[k].name}`;
+const DRUNK_TRAFFIC = 1.35;   // a drink in your system makes traffic 35% more likely
 // Civil Engineering halves it
 const trafficChance = () => month < TRAFFIC_FROM ? 0
-  : Math.min(TRAFFIC_MAX, TRAFFIC_BASE + (month - TRAFFIC_FROM) * TRAFFIC_GROWTH) * (hasDegree('civil') ? 0.5 : 1);
+  : Math.min(TRAFFIC_MAX, TRAFFIC_BASE + (month - TRAFFIC_FROM) * TRAFFIC_GROWTH)
+    * (hasDegree('civil') ? 0.5 : 1) * (drink ? DRUNK_TRAFFIC : 1);
 const trafficSpeed = () => Math.min(1.5, 1 + Math.max(0, month - TRAFFIC_FROM) * 0.04);   // cars get faster too
 
 const tcan = $('road');
@@ -2843,6 +3326,7 @@ function endCrossing(made) {
     placeBus(loc);
     showLocation();
     showModal('🚑', 'Crash!', `You got hit in traffic. The hospital patched you up and billed you ${fmt(hospitalBill())}. You've got ${fmt(bank)} now, and you're back at ${placeName(loc)}.`, 'Ouch', () => {}, 'bad');
+    if (gf) maybeDumped(CRASH_DUMP, dumpLine('crash'));
   }, made ? 600 : 1100);
 }
 
@@ -2878,8 +3362,8 @@ const CREDIT_TIERS = [
 
 // Credit card: bought at the Store, limits raised here once your score is high enough
 const CARD_PRICE = 500;
-const CARD_LIMITS = [500, 1000, 2000, 5000];
-const CARD_SCORES = [0, 580, 670, 740];   // credit score needed for each limit
+const CARD_LIMITS = [500, 1000, 2000, 5000, 20000];
+const CARD_SCORES = [0, 580, 670, 740, 850];   // credit score needed for each limit (850 is a perfect score)
 const CARD_RATE = 0.005;                  // daily interest on a negative balance
 const FINANCE_SAVE_BONUS = 0.001;         // a Finance degree adds this to the savings rate
 const FINANCE_DISCOUNT = 0.75;            // and multiplies loan and card interest by this
@@ -2911,8 +3395,8 @@ const signed = n => (n < 0 ? '−' : '+') + Math.abs(n);
 function creditParts() {
   const net = bank + savings - (loan ? loan.bal : 0);
   return {
-    jobs: 50 * ((unemployed ? 0 : 1) + (barJob ? 1 : 0)),
-    ranks: 12 * ((unemployed ? 0 : rankIndex(xp)) + (barJob ? rankIndex(barXp, BAR_RANKS) : 0)),
+    jobs: 50 * ((unemployed ? 0 : 1) + (barJob ? 1 : 0) + (officeJob ? 1 : 0)),
+    ranks: 12 * ((unemployed ? 0 : rankIndex(xp)) + (barJob ? rankIndex(barXp, BAR_RANKS) : 0) + (officeJob ? rankIndex(officeXp, OFFICE_RANKS) : 0)),
     history: creditHist,
     money: Math.max(-100, Math.min(120, Math.round(net / 25))),
   };
@@ -3051,6 +3535,7 @@ function upgradeCard() {
   if (!cardLimit || i + 1 >= CARD_LIMITS.length || creditScore() < CARD_SCORES[i + 1]) return;
   cardLimit = CARD_LIMITS[i + 1];
   save('rtb_card', cardLimit);
+  if (cardLimit === CARD_LIMITS[CARD_LIMITS.length - 1]) unlock('credit');
   bankDone(`💳 Limit raised: you can spend down to ${fmt(-cardLimit)}.`);
 }
 
@@ -3062,13 +3547,17 @@ $('loanBtn').onclick = loanAction;
 // ---------- Achievements ----------
 // Kept forever: Start over and eviction don't clear them, same as the high score
 const IRON_LUNG_CIGS = 20;
+const BIG_RIDE = 10000;   // wager for "Any moron can..." 
 const ACHIEVEMENTS = [
-  { id: 'cards', icon: '🃏', name: 'Let it Ride!', desc: 'Ride the bus all the way and win 20×.' },
+  { id: 'cards', icon: '🃏', name: 'Let It Ride!', desc: 'Ride the bus all the way and win 20×.' },
+  { id: 'moron', icon: '🤑', name: 'Any Moron Can...', desc: 'Win the 20× with $10,000 or more on the line.' },
   { id: 'lung', icon: '🫁', name: 'Iron Lung', desc: `Get your cigarette count to ${IRON_LUNG_CIGS}.` },
   { id: 'foal', icon: '🐴', name: 'Iron Foal', desc: `Finish a Burger Joint shift at max withdrawal (${WITHDRAWAL_CIGS}+ cigarettes smoked, none that shift) without burning a patty.` },
   { id: 'horse', icon: '🐎', name: 'Iron Horse', desc: 'Iron Foal on a full 15-burger Kitchen Manager shift.' },
   { id: 'stallion', icon: '🦄', name: 'Iron Stallion', desc: 'Iron Horse with every flip a great.' },
   { id: 'king', icon: '👑', name: 'The Burger King', desc: 'Iron Stallion with 🥩 Wagyu on the grill.' },
+  { id: 'together', icon: '💑', name: 'So What Are We?', desc: 'Keep a girlfriend for 6 months.' },
+  { id: 'credit', icon: '💳', name: "Credit Where It's Due", desc: 'Upgrade your credit card to the $20,000 limit with a perfect 850 score.' },
 ];
 
 function loadAch() {
@@ -3102,6 +3591,236 @@ function showAchievements() {
 $('achBtn').onclick = showAchievements;
 $('achClose').onclick = () => $('achBox').classList.add('hidden');
 
+// ---------- Dating: a side objective at the University, Gym and Bar ----------
+// Partying after class, flirting while you work out and buying someone a drink can land you a
+// girlfriend; once you have one, the same things count as dates that keep her happy.
+const PARTY_CHANCE = 0.2;      // per party
+const PARTY_XP_CUT = 0.2;      // a party costs this share of the subject's XP from before the session
+const FLIRT_CHANCE = 0.2;      // per workout (it takes twice the dodges per cigarette)
+const FLIRT_MIN = 10;          // dodges needed for the flirting to count
+const DRINK_CHANCE = { beer: 0.1, whiskey: 0.2, champagne: 0.35 };   // buying one for someone
+const GF_INCOME = 15;          // per day
+const LOVE_DECAY = 5;          // happiness lost per day (17 days from full with no dates and she leaves)
+const DATE_LOVE = 40;          // happiness gained per date
+const LOVE_MAX = 85;           // she's never more than this happy
+const TOGETHER_DAYS = 6 * DAYS_PER_MONTH;   // "So what are we?" achievement
+const LOVE_LOW = 30;           // shown as a warning below this
+const RED_GRACE = 5;           // days in a row in the red before she starts thinking of leaving
+const RED_DUMP = 0.2;          // chance per day after that
+const CRASH_DUMP = 0.5;        // chance she leaves when you crash in traffic
+const MUG_DUMP = 0.35;         // or when you get robbed
+// A random funny line for each way she can leave
+const DUMP_LINES = {
+  lonely: [
+    "She left a note on the fridge: \"Even the ATM sees you more than I do.\"",
+    "She's seeing a guy from her spin class now. He texts back.",
+    "She changed her relationship status to \"It's complicated (someone forgot I exist).\"",
+  ],
+  broke: [
+    "She ran your credit score for fun. It was not fun.",
+    "She wants someone with a positive balance. Emotionally and financially.",
+    "Her mom asked what you do. She said \"overdraft fees.\"",
+  ],
+  crash: [
+    "She signed your cast \"It's over\" and left the hospital.",
+    "She can't date someone who lost a fight with a crosswalk.",
+    "She saw the ambulance bill and quietly backed out of the room.",
+  ],
+  mugged: [
+    "She can't be with someone who loses rock, paper, scissors to a guy named Knuckles.",
+    "She's dating the mugger now. He has more cash than you.",
+    "She says if you can't protect your wallet, you can't protect her heart.",
+  ],
+};
+const dumpLine = k => DUMP_LINES[k][Math.floor(Math.random() * DUMP_LINES[k].length)];
+
+const BOUQUET_PRICE = 200;   // Store item: stops one breakup, then it's used up
+
+let gf = loadJSON('rtb_gf', null);   // { name, love, since } or null; since = the today() she got together with you
+let exes = loadJSON('rtb_exes', []);  // names of girlfriends who dumped you
+const gfName = () => (gf && gf.name) || 'Darling';
+// Said when a new girlfriend has the same name as an ex
+const SAME_NAME = ['Yes, that one.', 'Yes, that {n}. Again.', 'Your friends have questions.', "She's giving you a second chance. Don't make it weird.", 'Bold move.'];
+if (gf && gf.since === undefined) gf.since = today();   // saves from before this was tracked
+let bouquets = load('rtb_bouquet', 0);
+let redDays = load('rtb_red', 0);    // days in a row with negative cash
+let partyOn = false;                 // next study session ends with a party
+let flirtOn = false;                 // next workout includes flirting
+function saveGf() { saveJSON('rtb_gf', gf); save('rtb_red', redDays); saveJSON('rtb_exes', exes); }
+
+// A party, flirt or bought drink happened at `where`. Returns a short line for the location's message.
+function dateAttempt(where, chance) {
+  if (gf) {
+    gf.love = Math.min(LOVE_MAX, gf.love + DATE_LOVE);
+    saveGf();
+    renderCalendar();
+    return `💕 A date with ${gfName()}. She's ${gf.love}% happy.`;
+  }
+  if (Math.random() >= chance) return '💔 No spark this time.';
+  gf = { name: '', love: LOVE_MAX, since: today() };
+  saveGf();
+  [659, 784, 988].forEach((f, i) => setTimeout(() => beep(f, 0.15, 'sine', 0.1), i * 110));
+  // Ask her name first, then introduce her (with a jab if an ex had the same name)
+  showModal('💘', 'You hit it off!', `You met someone ${where}. What's her name?`, 'Save', value => {
+    if (!gf) return;
+    gf.name = value.trim().slice(0, 20) || 'Darling';
+    saveGf();
+    const repeat = exes.some(x => x.toLowerCase() === gf.name.toLowerCase());
+    const jab = repeat ? ' ' + SAME_NAME[Math.floor(Math.random() * SAME_NAME.length)].replace('{n}', gf.name) : '';
+    showModal('💕', `You meet your darling ${gf.name}`,
+      `${gf.name} is your girlfriend now.${jab} She chips in ${fmt(GF_INCOME)} a day. Keep her happy with dates: parties at the University, flirting at the Gym or a drink at the Bar. She'll leave if she goes ${LOVE_MAX / LOVE_DECAY} days without one, and she doesn't like crashes, muggings or a player who stays in the red.`,
+      'Aww', () => {});
+    renderCalendar();
+    if (loc === 'bar') renderBar();
+  }, '', "Her name");
+  renderCalendar();
+  return '💘 You hit it off with someone!';
+}
+
+function dumped(why) {
+  if (!gf) return;
+  // A bouquet saves the relationship once: she forgives, gets a date's worth of happiness, and the money worry resets
+  if (bouquets > 0) {
+    bouquets--;
+    save('rtb_bouquet', bouquets);
+    gf.love = Math.max(gf.love, DATE_LOVE);
+    redDays = 0;
+    saveGf();
+    [784, 988].forEach((f, i) => setTimeout(() => beep(f, 0.15, 'sine', 0.1), i * 120));
+    showModal('💐', 'Saved by flowers', `${why} ...but you handed ${gfName()} a bouquet just in time. She's staying, for now.${bouquets ? ` You have ${bouquets} bouquet${bouquets === 1 ? '' : 's'} left.` : ''}`, 'Phew', () => {});
+    renderCalendar();
+    return;
+  }
+  const name = gfName();
+  exes.push(name);
+  gf = null;
+  saveGf();
+  beep(196, 0.4, 'sine', 0.12);
+  showModal('💔', `${name} dumped you`, why, 'Ouch', () => {}, 'bad');
+  renderCalendar();
+}
+
+// Roll for a breakup after something bad happens
+function maybeDumped(chance, why) { if (gf && Math.random() < chance) dumped(why); }
+
+// One day passes for the relationship: income, fading happiness and money worries
+function gfDay() {
+  redDays = bank < 0 ? redDays + 1 : 0;
+  if (!gf) return;
+  bank += GF_INCOME;
+  gf.love = Math.max(0, gf.love - LOVE_DECAY);
+  if (gf.love === 0) return dumped(`${dumpLine('lonely')} (She waited too long for a date.)`);
+  if (redDays > RED_GRACE && Math.random() < RED_DUMP) dumped(`${dumpLine('broke')} (${redDays} days in the red.)`);
+}
+
+function buyDrinkFor(k) {
+  const it = DRINKS[k];
+  if (mix || spendable() < it.price) return;
+  bank -= it.price;
+  save('rtb_bank', bank);
+  ching();
+  const who = gf ? gfName() : 'someone';
+  setRMsg(`${it.icon} You bought ${who} a ${it.name}. ${dateAttempt('at the Bar', DRINK_CHANCE[k])}`, gf ? 'good' : '');
+  renderBar();
+  renderStats();
+}
+
+$('partyBtn').onclick = () => { partyOn = !partyOn; renderUni(); };
+$('flirtBtn').onclick = () => { flirtOn = !flirtOn; renderGym(); };
+
+// ---------- Save codes: export and import all progress ----------
+// The code is every rtb_ storage key as JSON, base64 encoded (UTF-8 safe, so names with emoji survive)
+const SAVE_PREFIX = 'RTB1:';
+
+// Write everything in memory to storage, so a code always has the full current game
+function saveAll() {
+  save('rtb_bank', bank);
+  save('rtb_high', high);
+  saveCalendar();
+  saveInv();
+  saveCareer();
+  saveBar();
+  saveDrink();
+  save('rtb_id', hasId ? 1 : 0);
+  save('rtb_cigs', cigsSmoked);
+  save('rtb_gympaid', gymPaidMonth);
+  saveBank();
+  save('rtb_card', cardLimit);
+  save('rtb_club', clubs);
+  saveUni();
+  saveOffice();
+  saveGf();
+  save('rtb_bouquet', bouquets);
+  saveJSON('rtb_ach', achieved);
+}
+
+function exportSave() {
+  saveAll();
+  const data = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k.startsWith('rtb_')) data[k] = localStorage.getItem(k);
+    }
+  } catch {}
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  let bin = '';
+  bytes.forEach(b => { bin += String.fromCharCode(b); });
+  return SAVE_PREFIX + btoa(bin);
+}
+
+// Returns the decoded keys, or null if the code isn't a valid save
+function decodeSave(code) {
+  code = code.replace(/\s+/g, '');
+  if (!code.startsWith(SAVE_PREFIX)) return null;
+  try {
+    const bin = atob(code.slice(SAVE_PREFIX.length));
+    const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
+    if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
+    const keys = Object.keys(data);
+    if (!keys.length || !keys.every(k => k.startsWith('rtb_') && typeof data[k] === 'string')) return null;
+    return data;
+  } catch { return null; }
+}
+
+function setSaveMsg(text, kind = '') {
+  const m = $('saveMsg');
+  m.textContent = text;
+  m.className = 'save-msg ' + kind;
+}
+
+function openSave() {
+  $('saveOut').value = exportSave();
+  $('saveIn').value = '';
+  setSaveMsg('');
+  $('saveBox').classList.remove('hidden');
+}
+
+function importSave() {
+  const data = decodeSave($('saveIn').value);
+  if (!data) return setSaveMsg("That doesn't look like a save code.", 'bad');
+  if (playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking()) return setSaveMsg('Finish what you\'re doing first.', 'bad');
+  if (!confirm('Load this save? Your current progress will be replaced.')) return;
+  try {
+    Object.keys(localStorage).filter(k => k.startsWith('rtb_')).forEach(k => localStorage.removeItem(k));
+    for (const [k, v] of Object.entries(data)) localStorage.setItem(k, v);
+  } catch { return setSaveMsg("Couldn't save to this browser's storage.", 'bad'); }
+  location.reload();
+}
+
+async function copySave() {
+  const box = $('saveOut');
+  try { await navigator.clipboard.writeText(box.value); }
+  catch { box.select(); document.execCommand('copy'); }   // older browsers
+  setSaveMsg('Copied!', 'good');
+}
+
+$('saveBtn').onclick = openSave;
+$('saveCopy').onclick = copySave;
+$('saveLoad').onclick = importSave;
+$('saveClose').onclick = () => $('saveBox').classList.add('hidden');
+$('saveOut').addEventListener('focus', e => e.target.select());
+
 // ---------- Calendar and rent ----------
 function rentFor(m) { return Math.round(BASE_RENT * RENT_GROWTH ** (m - 1)); }
 
@@ -3120,18 +3839,24 @@ function renderCalendar() {
   $('calNote').textContent = loan
     ? `💸 Loan of ${fmt(Math.ceil(loan.bal))} due in ${due} day${due === 1 ? '' : 's'}. Pay it at the Bank.`
     : 'A hand takes 1 day, everything else takes 3. Rent is due at the end of each 30-day month.';
+  const g = $('gfNote');
+  g.textContent = gf ? `💕 ${gfName()}: ${gf.love}% happy · +${fmt(GF_INCOME)}/day` + (gf.love < LOVE_LOW ? ' · she wants a date!' : '')
+    + (bank < 0 ? ` · worried about money (${redDays} day${redDays === 1 ? '' : 's'} in the red)` : '') : '';
+  g.classList.toggle('low', !!gf && (gf.love < LOVE_LOW || redDays > RED_GRACE));
 }
 
 function saveCalendar() { save('rtb_month', month); save('rtb_day', day); }
 
 function passTime(days) {
-  // Interest compounds every day
+  // Interest compounds every day, and a girlfriend's day plays out
   for (let i = 0; i < days; i++) {
+    gfDay();
     savings *= 1 + saveRate();
     if (loan) loan.bal *= 1 + loan.rate;
     if (cardLimit && bank < 0) bank -= Math.ceil(-bank * cardRate());   // card interest, whole dollars
   }
   save('rtb_bank', bank);
+  saveGf();
   day += days;
   if (loan && today() >= loan.due) collectLoan();
   saveBank();
@@ -3163,6 +3888,7 @@ function passTime(days) {
     }
   }
   saveCalendar();
+  if (gf && today() - gf.since >= TOGETHER_DAYS) unlock('together');
   renderStats();
   if (loc === 'bank') renderBank();
 }
@@ -3197,6 +3923,18 @@ function restartGame() {
   saveBar();
   saveDrink();
   savings = 0;
+  gf = null;
+  exes = [];
+  redDays = 0;
+  bouquets = 0;
+  save('rtb_bouquet', 0);
+  officeJob = officeOffer = false;
+  officeXp = 0;
+  officeHoops = OFFICE_START_HOOPS;
+  saveOffice();
+  slide = memo = null;
+  partyOn = flirtOn = false;
+  saveGf();
   clubs = 0;
   save('rtb_club', 0);
   degrees = [];
@@ -3226,19 +3964,24 @@ function modalOpen() { return !$('modal').classList.contains('hidden'); }
 
 const modalQueue = [];   // popups wait their turn if one is already showing
 
-function showModal(icon, title, text, btn, onClose, kind = '') {
-  if (modalOpen()) { modalQueue.push([icon, title, text, btn, onClose, kind]); return; }
+// input: a placeholder string to show a text box; its value is passed to onClose
+function showModal(icon, title, text, btn, onClose, kind = '', input = null) {
+  if (modalOpen()) { modalQueue.push([icon, title, text, btn, onClose, kind, input]); return; }
   $('modalIcon').textContent = icon;
   $('modalTitle').textContent = title;
   $('modalText').textContent = text;
   $('modalBtn').textContent = btn;
   $('modal').className = 'modal ' + kind;
+  const box = $('modalInput');
+  box.classList.toggle('hidden', input === null);
+  box.value = '';
+  box.placeholder = input || '';
   $('modalBtn').onclick = () => {
     $('modal').classList.add('hidden');
-    onClose();
+    onClose(box.value);
     if (modalQueue.length) showModal(...modalQueue.shift());
   };
-  $('modalBtn').focus();
+  (input === null ? $('modalBtn') : box).focus();
 }
 
 $('wager').value = Math.min(10, Math.max(1, bank));
