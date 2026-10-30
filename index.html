@@ -699,6 +699,8 @@ let loc = 'casino';      // a key of PLACES
 let traveling = false;   // also true while crossing traffic
 let travelTimer = null;
 
+// "a" or "an" plus the word: by vowel sound, so initialisms like LED read as "an LED"
+const aAn = w => `${/^[AEIOU]/i.test(w) || /^[AEFHILMNORSX][A-Z]+\b/.test(w) ? 'an' : 'a'} ${w}`;
 // Cash can go negative (hospital bills, collected loans); savings and loans carry cents
 function fmt(n) { n = Math.round(n); return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(); }
 
@@ -1228,7 +1230,7 @@ function buyPart() {
   parts++;
   save('rtb_parts', parts);
   ching();
-  setSMsg(`${pt.icon} Bought a ${pt.name}. ${gf ? gfName() : 'Your boyfriend'} now makes ${fmt(partnerIncome())} a day.`, 'good');
+  setSMsg(`${pt.icon} Bought ${aAn(pt.name)}. ${gf ? gfName() : 'Your boyfriend'} now makes ${fmt(partnerIncome())} a day.`, 'good');
   renderStore();
   renderStats();
   renderCalendar();
@@ -1466,7 +1468,7 @@ function settleCareer(s) {
   } else {
     const after = rankIndex(xp);
     if (after > before) {
-      showModal('⭐', 'Promoted!', `You're now a ${RANKS[after].name}. Shifts are ${RANKS[after].burgers} burgers long.`, 'Nice', () => {});
+      showModal('⭐', 'Promoted!', `You're now ${aAn(RANKS[after].name)}. Shifts are ${RANKS[after].burgers} burgers long.`, 'Nice', () => {});
     } else if (after < before) {
       showModal('📉', 'Demoted', `You're back to ${RANKS[after].name}. Shifts are ${RANKS[after].burgers} burgers long.`, 'OK', () => {}, 'bad');
     }
@@ -1768,7 +1770,7 @@ function renderHome() {
   renderCareer();
   $('hq').textContent = (unemployed
     ? `No Burger Joint job. Jump through ${hoopsNeeded} hoops to get hired there.`
-    : `Home sweet home. You've got a job at the Burger Joint as a ${rankOf(xp).name}.`)
+    : `Home sweet home. You've got a job at the Burger Joint as ${aAn(rankOf(xp).name)}.`)
     + (officeJob ? ` 💼 Your office job is worked from here.` : '');
   const b = $('apply');
   b.classList.toggle('hidden', !unemployed || applying || officeWorking());
@@ -1913,7 +1915,7 @@ function endApplication(hired) {
       officeXp = 0;
       saveOffice();
       setHMsg(`You jumped through ${f.need} hoops!`, 'good');
-      showModal('💼', "You're hired!", `The office is taking you on as ${/^[AEIOU]/.test(OFFICE_RANKS[0].name) ? 'an' : 'a'} ${OFFICE_RANKS[0].name}. Work shifts from Home.`, 'Nice', () => { flappy = null; renderHome(); });
+      showModal('💼', "You're hired!", `The office is taking you on as ${aAn(OFFICE_RANKS[0].name)}. Work shifts from Home.`, 'Nice', () => { flappy = null; renderHome(); });
     } else {
       beep(140, 0.3, 'sawtooth', 0.15);
       setHMsg(`The interview went badly (${f.score}/${f.need} hoops). The offer still stands. Try again.`, 'bad');
@@ -2290,7 +2292,7 @@ function endMix(ok) {
       barXp = 0;
       saveBar();
       setRMsg('');
-      showModal('🍸', "You're hired!", `The bar is taking you on as a ${BAR_RANKS[0].name}. Work a shift here any time.`, 'Nice', () => renderBar());
+      showModal('🍸', "You're hired!", `The bar is taking you on as ${aAn(BAR_RANKS[0].name)}. Work a shift here any time.`, 'Nice', () => renderBar());
     } else {
       setRMsg(`The board filled up. You served ${s.served} of ${s.total} drinks. Try again.`, 'bad');
     }
@@ -2326,7 +2328,7 @@ function settleBarXp(s, ok) {
   if (after > before) {
     const r = BAR_RANKS[after];
     const unlocked = RECIPES.filter(x => x.rank === after).map(x => x.name).join(' and ');
-    showModal('⭐', 'Promoted!', `You're now ${/^[AEIOU]/.test(r.name) ? 'an' : 'a'} ${r.name}: ${r.drinks}-drink shifts, ${fmt(r.pay)} per block and a ${fmt(r.tip)} tip.${unlocked ? ` New recipes: ${unlocked}.` : ''}`, 'Nice', () => {});
+    showModal('⭐', 'Promoted!', `You're now ${aAn(r.name)}: ${r.drinks}-drink shifts, ${fmt(r.pay)} per block and a ${fmt(r.tip)} tip.${unlocked ? ` New recipes: ${unlocked}.` : ''}`, 'Nice', () => {});
   } else if (after < before) {
     showModal('📉', 'Demoted', `You're back to ${BAR_RANKS[after].name}.`, 'OK', () => {}, 'bad');
   }
@@ -2481,7 +2483,7 @@ function renderUni() {
   }
   $('uq').textContent = simon
     ? (simon.phase === 'showing' ? 'Watch the lights…' : 'Your turn: repeat them')
-    : done ? `You already have a ${d.name} degree. Pick another to study.`
+    : done ? `You already have ${aAn(d.name)} degree. Pick another to study.`
     : `Study ${d.name}: repeat the lights for as long as you can. They get longer and faster.`;
   $('uniInfo').textContent = simon
     ? `Round ${simon.round} · Tap the books or press 1–4`
@@ -2648,13 +2650,38 @@ const slidePic = (() => {
   sky.addColorStop(1, '#f2b84b');
   g.fillStyle = sky;
   g.fillRect(0, 0, SLIDE_SIZE, SLIDE_SIZE);
-  g.textAlign = 'center';
-  g.textBaseline = 'middle';
-  g.font = '60px system-ui, sans-serif';
-  g.fillText('☀️', 50, 50);
-  g.fillText('☁️', 210, 60);
-  g.font = '170px system-ui, sans-serif';
-  g.fillText('🏢', SLIDE_SIZE / 2, SLIDE_SIZE / 2 + 30);
+  // Drawn with shapes, not emoji: Safari leaves big emoji blank on a canvas
+  const circle = (x, y, r, col) => { g.fillStyle = col; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill(); };
+  circle(50, 50, 30, '#ffd23f');   // sun
+  g.strokeStyle = '#ffd23f';
+  g.lineWidth = 4;
+  for (let k = 0; k < 8; k++) {
+    const a = k * Math.PI / 4;
+    g.beginPath();
+    g.moveTo(50 + Math.cos(a) * 36, 50 + Math.sin(a) * 36);
+    g.lineTo(50 + Math.cos(a) * 46, 50 + Math.sin(a) * 46);
+    g.stroke();
+  }
+  for (const [x, y, r] of [[190, 62, 18], [212, 52, 24], [236, 62, 18]]) circle(x, y, r, '#fff');   // cloud
+  g.fillStyle = '#fff';
+  g.fillRect(190, 62, 46, 18);
+  // Office tower: a grey block with rows of blue windows, a door and a roof sign
+  const bx = 75, by = 95, bw = 120, bh = SLIDE_SIZE - by;
+  g.fillStyle = '#8a94a3';
+  g.fillRect(bx, by, bw, bh);
+  g.fillStyle = '#6b7482';
+  g.fillRect(bx - 6, by - 10, bw + 12, 12);
+  g.fillStyle = '#c0392b';
+  g.fillRect(bx + 35, by - 28, 50, 18);
+  for (let row = 0; row < 7; row++)
+    for (let col = 0; col < 4; col++) {
+      g.fillStyle = (row + col) % 3 ? '#9fd3ff' : '#ffe08a';
+      g.fillRect(bx + 10 + col * 28, by + 10 + row * 22, 16, 14);
+    }
+  g.fillStyle = '#4a3b2a';
+  g.fillRect(bx + 45, SLIDE_SIZE - 26, 30, 26);
+  g.fillStyle = '#3e8e41';   // grass
+  g.fillRect(0, SLIDE_SIZE - 12, SLIDE_SIZE, 12);
   return c;
 })();
 
@@ -2896,7 +2923,7 @@ function settleOffice(misses) {
     showModal('📋', "You're fired!", `Too many sloppy days at the office. To get back in you'll need another internship, then ${officeHoops} hoops (+${extra}) in the interview.`, 'OK', () => renderHome(), 'bad');
   } else {
     const after = rankIndex(officeXp, OFFICE_RANKS);
-    if (after > before) showModal('⭐', 'Promoted!', `You're now ${/^[AEIOU]/.test(OFFICE_RANKS[after].name) ? 'an' : 'a'} ${OFFICE_RANKS[after].name}. Shifts pay ${fmt(OFFICE_RANKS[after].pay)}, but mismatched cards flip back faster.`, 'Nice', () => {});
+    if (after > before) showModal('⭐', 'Promoted!', `You're now ${aAn(OFFICE_RANKS[after].name)}. Shifts pay ${fmt(OFFICE_RANKS[after].pay)}, but mismatched cards flip back faster.`, 'Nice', () => {});
     else if (after < before) showModal('📉', 'Demoted', `You're back to ${OFFICE_RANKS[after].name}.`, 'OK', () => {}, 'bad');
   }
   saveOffice();
@@ -3818,7 +3845,7 @@ function buyDrinkFor(k) {
   save('rtb_bank', bank);
   ching();
   const who = gf ? gfName() : 'someone';
-  setRMsg(`${it.icon} You bought ${who} a ${it.name}. ${dateAttempt('at the Bar', DRINK_CHANCE[k])}`, gf ? 'good' : '');
+  setRMsg(`${it.icon} You bought ${who} ${aAn(it.name.toLowerCase())}. ${dateAttempt('at the Bar', DRINK_CHANCE[k])}`, gf ? 'good' : '');
   renderBar();
   renderStats();
 }
