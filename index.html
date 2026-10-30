@@ -45,6 +45,9 @@
   .stat .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
   .stat .value { font-size: 22px; font-weight: 700; margin-top: 2px; }
   .stat.hs .value { color: var(--gold); }
+  .stat .value.neg { color: #ff8a8a; }
+  .card-left { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .card-left:empty { display: none; }
 
   .cards {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px;
@@ -140,7 +143,7 @@
   .map { background: rgba(0,0,0,.25); border-radius: 12px; padding: 12px 16px 14px; margin-bottom: 20px; }
   .map-area { position: relative; height: 108px; }
   .road {
-    position: absolute; left: 8%; right: 8%; top: 58px; height: 10px; border-radius: 5px;
+    position: absolute; left: 7%; right: 7%; top: 58px; height: 10px; border-radius: 5px;
     background: #3a3a3a; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
   }
   .road::after {
@@ -162,18 +165,19 @@
   }
   .loc.here { color: var(--gold); }
   .loc.here .icon { border-color: var(--gold); box-shadow: 0 0 12px rgba(245,197,66,.5); }
-  .loc[data-loc=home] { left: 8%; }
-  .loc[data-loc=gym] { left: 25%; }
-  .loc[data-loc=casino] { left: 42%; }
-  .loc[data-loc=bar] { left: 58%; }
+  .loc[data-loc=home] { left: 7%; }
+  .loc[data-loc=gym] { left: 21%; }
+  .loc[data-loc=casino] { left: 36%; }
+  .loc[data-loc=bank] { left: 50%; }
+  .loc[data-loc=bar] { left: 64%; }
   .loc .icon { position: relative; }
   .loc.locked .icon { filter: grayscale(1); opacity: .6; }
   .loc.locked .icon::after { content: '🔒'; position: absolute; right: -6px; bottom: -6px; font-size: 14px; }
-  .loc[data-loc=store] { left: 75%; }
-  .loc[data-loc=burger] { left: 92%; }
-  .loc .name { margin-top: 30px; max-width: 54px; text-align: center; line-height: 1.15; font-size: 10px; }
+  .loc[data-loc=store] { left: 79%; }
+  .loc[data-loc=burger] { left: 93%; }
+  .loc .name { margin-top: 30px; max-width: 46px; text-align: center; line-height: 1.15; font-size: 10px; }
   .bus {
-    position: absolute; left: 42%; top: 46px; font-size: 24px; line-height: 1; pointer-events: none;
+    position: absolute; left: 36%; top: 46px; font-size: 24px; line-height: 1; pointer-events: none;
     transform: translateX(-50%); transition: left 1.2s ease-in-out;
   }
   .bus.right { transform: translateX(-50%) scaleX(-1); }
@@ -262,6 +266,30 @@
   .item .desc { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
   .item .owned { font-size: 12px; color: var(--text); margin-top: 4px; }
   .item button { min-width: 70px; }
+
+  /* Traffic: a crossing minigame shown over the page during some trips */
+  .modal.traffic { z-index: 9; }
+  .traffic .modal-box { padding: 14px 10px 12px; }
+  .traffic .modal-box h2 { margin: 0 0 4px; }
+  .traffic .modal-box p { margin: 0 0 10px; font-size: 14px; }
+  .crossy {
+    display: block; width: 100%; max-width: 300px; aspect-ratio: 300 / 330; margin: 0 auto 10px;
+    border-radius: 8px; touch-action: none; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .dpad { touch-action: none; }
+  .dpad button { min-width: 58px; font-size: 20px; padding: 10px 0; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
+
+  /* Bank */
+  .bank-box { background: rgba(0,0,0,.25); border-radius: 10px; padding: 12px; margin-top: 10px; }
+  .bank-box .name { font-weight: 700; }
+  .bank-box .desc { font-size: 13px; color: var(--muted); margin: 4px 0 10px; line-height: 1.35; }
+  .bank-box input {
+    width: 76px; font: inherit; font-size: 18px; text-align: center; padding: 8px 4px;
+    border-radius: 8px; border: none; background: #fff; color: #111;
+  }
+  .bank-box .row { align-items: center; gap: 8px; }
+  .bank-box button { min-width: 0; padding: 12px 12px; }
 </style>
 </head>
 <body>
@@ -270,7 +298,7 @@
   <p class="sub" id="sub"></p>
 
   <div class="stats">
-    <div class="stat"><div class="label">Bankroll</div><div class="value" id="bank">$0</div></div>
+    <div class="stat"><div class="label">Bankroll</div><div class="value" id="bank">$0</div><div class="card-left" id="cardLeft"></div></div>
     <div class="stat"><div class="label" id="potLabel">On the line</div><div class="value" id="pot">—</div></div>
     <div class="stat hs"><div class="label">High score</div><div class="value" id="high">$0</div></div>
   </div>
@@ -281,7 +309,21 @@
       <span id="calRent"></span>
     </div>
     <div class="cal-bar"><div class="cal-fill" id="calFill"></div></div>
-    <div class="cal-note">A hand takes 1 day, everything else takes 3. Rent is due at the end of each 30-day month.</div>
+    <div class="cal-note" id="calNote"></div>
+  </div>
+
+  <div class="modal traffic hidden" id="traffic">
+    <div class="modal-box">
+      <h2>🚧 Traffic!</h2>
+      <p id="trafficText"></p>
+      <canvas id="road" class="crossy" width="300" height="330"></canvas>
+      <div class="row dpad">
+        <button data-move="left" aria-label="Left">◀</button>
+        <button data-move="up" aria-label="Forward">▲</button>
+        <button data-move="down" aria-label="Back">▼</button>
+        <button data-move="right" aria-label="Right">▶</button>
+      </div>
+    </div>
   </div>
 
   <div class="modal hidden" id="modal">
@@ -299,6 +341,7 @@
       <button class="loc" data-loc="home"><span class="icon">🏠</span><span class="name">Home</span></button>
       <button class="loc" data-loc="gym"><span class="icon">🏋️</span><span class="name">Gym</span></button>
       <button class="loc" data-loc="casino"><span class="icon">🎰</span><span class="name">Casino</span></button>
+      <button class="loc" data-loc="bank"><span class="icon">🏦</span><span class="name">Bank</span></button>
       <button class="loc" data-loc="bar"><span class="icon">🍸</span><span class="name">Bar</span></button>
       <button class="loc" data-loc="store"><span class="icon">🏪</span><span class="name">Store</span></button>
       <button class="loc" data-loc="burger"><span class="icon">🍔</span><span class="name">Burger Joint</span></button>
@@ -375,6 +418,37 @@
       <div class="question">Drinks: luck for your next few casino hands (one at a time)</div>
       <div class="drink-status" id="drinkStatus"></div>
       <div class="items" id="drinks"></div>
+    </div>
+  </div>
+
+  <!-- Bank -->
+  <div id="bankView" class="hidden">
+    <div class="msg" id="kmsg"></div>
+    <div class="panel">
+      <div class="jobcard" id="creditCard"></div>
+      <div class="bank-box">
+        <div class="name" id="saveHead"></div>
+        <div class="desc" id="saveDesc"></div>
+        <div class="row">
+          <input id="saveAmt" type="number" min="1" step="1" aria-label="Savings amount">
+          <button class="gold" id="deposit">Deposit</button>
+          <button id="withdraw">Withdraw</button>
+        </div>
+      </div>
+      <div class="bank-box">
+        <div class="name" id="loanHead"></div>
+        <div class="desc" id="loanDesc"></div>
+        <div class="row" id="loanRow">
+          <input id="loanAmt" type="number" min="1" step="1" aria-label="Loan amount">
+          <button class="gold" id="loanBtn"></button>
+        </div>
+      </div>
+      <div class="bank-box">
+        <div class="name" id="cardHead"></div>
+        <div class="desc" id="cardDesc"></div>
+        <div class="row" id="cardRow"><button class="gold" id="cardUp"></button></div>
+      </div>
+      <div class="shift-info" id="bankInfo"></div>
     </div>
   </div>
 
@@ -465,11 +539,12 @@ let drawn = [];
 let wager = 0;
 let round = 0;     // 0..3 while playing
 let playing = false;
-let loc = 'casino';      // 'casino' | 'burger'
-let traveling = false;
+let loc = 'casino';      // a key of PLACES
+let traveling = false;   // also true while crossing traffic
 let travelTimer = null;
 
-function fmt(n) { return '$' + n.toLocaleString(); }
+// Cash can go negative (hospital bills, collected loans); savings and loans carry cents
+function fmt(n) { n = Math.round(n); return (n < 0 ? '-$' : '$') + Math.abs(n).toLocaleString(); }
 
 function newDeck() {
   const d = [];
@@ -508,8 +583,13 @@ function renderCards(resultIdx = -1, won = null) {
 
 function renderStats() {
   $('bank').textContent = fmt(bank);
+  $('bank').classList.toggle('neg', bank < 0);
+  $('cardLeft').textContent = cardLimit ? `💳 ${fmt(Math.max(0, spendable()))} left` : '';
   $('high').textContent = fmt(high);
-  if (loc === 'burger') {
+  if (loc === 'bank') {
+    $('potLabel').textContent = loan ? 'You owe' : 'Savings';
+    $('pot').textContent = fmt(loan ? Math.ceil(loan.bal) : savings);
+  } else if (loc === 'burger') {
     $('potLabel').textContent = 'This shift';
     $('pot').textContent = shift ? fmt(shift.earned) : '—';
   } else {
@@ -588,22 +668,25 @@ function renderQuestion() {
 }
 
 function syncWagerControls() {
-  const max = Math.max(1, bank);
+  const max = Math.max(1, spendable());
   const w = $('wager'), s = $('slider');
   w.max = s.max = max;
   let v = Math.floor(Number(w.value) || 0);
   v = Math.min(Math.max(v, 1), max);
   w.value = s.value = v;
-  $('deal').disabled = bank < 1;
+  $('deal').disabled = spendable() < 1;
 }
 
 function toBet() {
   playing = false;
-  if (bank < 1) {
+  if (spendable() < 1) {
     const dest = brokeDest();
-    $('brokeText').textContent = dest === 'home'
-      ? "You're broke and out of a job. Go home and apply for work."
-      : `You're broke. Time to earn your bus fare at the ${PLACES[dest].name}.`;
+    const broke = cardLimit ? "Your card's maxed out" : bank < 0 ? `You're ${fmt(-bank)} in the red` : "You're broke";
+    $('brokeText').textContent = dest === 'bank'
+      ? `${broke}, but you've got ${fmt(savings)} in savings. Ride to the Bank to withdraw some.`
+      : dest === 'home'
+      ? `${broke}, and you're out of a job. Go home and apply for work.`
+      : `${broke}. Time to earn your bus fare at the ${PLACES[dest].name}.`;
     $('goWork').textContent = `🚌 Ride to the ${PLACES[dest].name}`;
     showPhase('broke');
     renderStats();
@@ -617,7 +700,7 @@ function toBet() {
 function deal() {
   syncWagerControls();
   wager = Number($('wager').value);
-  if (wager < 1 || wager > bank) return;
+  if (wager < 1 || wager > spendable()) return;
   bank -= wager;
   save('rtb_bank', bank);
   deck = newDeck();
@@ -708,18 +791,18 @@ $('wager').addEventListener('change', syncWagerControls);
 $('slider').addEventListener('input', () => { $('wager').value = $('slider').value; });
 // Shortcuts are fractions of the whole bankroll
 document.querySelectorAll('[data-frac]').forEach(b => b.addEventListener('click', () => {
-  $('wager').value = Math.floor(bank * Number(b.dataset.frac));
+  $('wager').value = Math.floor(spendable() * Number(b.dataset.frac));
   syncWagerControls();
 }));
 
 $('deal').onclick = deal;
 $('cashout').onclick = cashOut;
-// Where a broke player should go to earn: a job they have, or Home to find one
-function brokeDest() { return !unemployed ? 'burger' : barJob && hasId ? 'bar' : 'home'; }
+// Where a broke player should go: savings to withdraw, a job they have, or Home to find one
+function brokeDest() { return savings >= 1 ? 'bank' : !unemployed ? 'burger' : barJob && hasId ? 'bar' : 'home'; }
 $('goWork').onclick = () => travel(brokeDest());
 $('startOver').onclick = () => {
-  if (playing || shift || applying || simon || working) return alert('Finish what you\'re doing first.');
-  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, and an empty bag. Your high score is kept.`)) return;
+  if (playing || shift || applying || simon || working || traveling) return alert('Finish what you\'re doing first.');
+  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
   restartGame();
 };
 $('resetHigh').onclick = () => {
@@ -731,18 +814,19 @@ $('resetHigh').onclick = () => {
 
 // ---------- Map ----------
 const PLACES = {
-  home: { name: 'Home', sub: 'Rest up, or job hunt if you lost your job.', x: 8 },
-  gym: { name: 'Gym', sub: 'Work out to kick the smoking habit. Pay the monthly fee on your first visit each month.', x: 25 },
-  casino: { name: 'Casino', sub: 'Guess 4 cards in a row. Cash out any time — or ride it all the way for 20×.', x: 42 },
-  bar: { name: 'Bar', sub: 'Tend bar by remembering orders, or buy a drink for some casino luck.', x: 58 },
-  store: { name: 'Store', sub: 'Stock up on boosts before your next shift.', x: 75 },
-  burger: { name: 'Burger Joint', sub: 'Hit the skill check to flip each burger. Great flips pay the most.', x: 92 },
+  home: { name: 'Home', sub: 'Rest up, or job hunt if you lost your job.', x: 7 },
+  gym: { name: 'Gym', sub: 'Work out to kick the smoking habit. Pay the monthly fee on your first visit each month.', x: 21 },
+  casino: { name: 'Casino', sub: 'Guess 4 cards in a row. Cash out any time — or ride it all the way for 20×.', x: 36 },
+  bank: { name: 'Bank', sub: 'Save money for daily interest, or borrow against your credit score.', x: 50 },
+  bar: { name: 'Bar', sub: 'Tend bar by remembering orders, or buy a drink for some casino luck.', x: 64 },
+  store: { name: 'Store', sub: 'Stock up on boosts before your next shift.', x: 79 },
+  burger: { name: 'Burger Joint', sub: 'Hit the skill check to flip each burger. Great flips pay the most.', x: 93 },
 };  // x = map position, % from the left
 
-function placeBus(dest) {
+function placeBus(dest, x = PLACES[dest].x) {
   const bus = $('bus');
   bus.classList.toggle('right', PLACES[dest].x > PLACES[loc].x);
-  bus.style.left = PLACES[dest].x + '%';
+  bus.style.left = x + '%';
 }
 
 function renderMap() {
@@ -752,11 +836,12 @@ function renderMap() {
     b.disabled = busy || b.dataset.loc === loc;
     b.classList.toggle('locked', b.dataset.loc === 'bar' && !hasId);
   });
-  $('mapHint').textContent = traveling ? '🚌 On the road…'
+  $('mapHint').textContent = crossing ? '🚧 Stuck in traffic!'
+    : traveling ? '🚌 On the road…'
     : playing ? 'Finish your hand before leaving'
     : shift ? 'Finish your shift before leaving'
     : applying || simon || working ? 'Finish what you\'re doing first'
-    : 'Tap a location to travel';
+    : 'Tap a location to travel' + (trafficChance() ? ` · 🚧 ${pct(trafficChance())} traffic chance per stop` : '');
 }
 
 function travel(dest) {
@@ -768,9 +853,18 @@ function travel(dest) {
   if (dest === loc || playing || shift || traveling || applying || simon || working) return;
   traveling = true;
   flappy = null;   // a finished job application doesn't follow you around
+  run = null;      // nor does a finished workout
+  // Traffic is rolled once for each space between locations, in the order you pass them
+  const order = Object.keys(PLACES), from = order.indexOf(loc), step = Math.sign(order.indexOf(dest) - from);
+  for (let i = from; i !== order.indexOf(dest); i += step) {
+    if (Math.random() < trafficChance()) return startCrossing(dest, (PLACES[order[i]].x + PLACES[order[i + step]].x) / 2);
+  }
+  drive(dest);
+}
+
+function drive(dest) {
   placeBus(dest);
   renderMap();
-  run = null;      // nor does a finished workout
   travelTimer = setTimeout(() => {
     traveling = false;
     loc = dest;
@@ -780,6 +874,7 @@ function travel(dest) {
 
 function showLocation(arrived = false) {
   $('casinoView').classList.toggle('hidden', loc !== 'casino');
+  $('bankView').classList.toggle('hidden', loc !== 'bank');
   $('burgerView').classList.toggle('hidden', loc !== 'burger');
   $('storeView').classList.toggle('hidden', loc !== 'store');
   $('barView').classList.toggle('hidden', loc !== 'bar');
@@ -788,7 +883,7 @@ function showLocation(arrived = false) {
   $('sub').textContent = PLACES[loc].sub;
   if (loc === 'casino') {
     drawn = [];
-    setMsg(arrived && bank >= 1 ? `Welcome back. You've got ${fmt(bank)} to play with.` : '');
+    setMsg(arrived && spendable() >= 1 ? `Welcome back. You've got ${fmt(spendable())} to play with${cardLimit ? ', counting your card' : ''}.` : '');
     renderCards();
     toBet();
   } else if (loc === 'home') {
@@ -803,12 +898,16 @@ function showLocation(arrived = false) {
     setRMsg('');
     renderBar();
     renderStats();
+  } else if (loc === 'bank') {
+    setKMsg('');
+    renderBank(true);
+    renderStats();
   } else if (loc === 'store') {
     setSMsg('');
     renderStore();
     renderStats();
   } else {
-    setBMsg(bank < 1 ? 'Broke, huh? Grab a spatula.' : '');
+    setBMsg(spendable() < 1 ? 'Broke, huh? Grab a spatula.' : '');
     renderBurgerIdle();
     renderStats();
   }
@@ -856,7 +955,7 @@ function renderStore() {
     const b = document.createElement('button');
     b.className = 'gold';
     b.textContent = 'Buy';
-    b.disabled = bank < it.price;
+    b.disabled = spendable() < it.price;
     b.onclick = () => buy(k);
     row.append(b);
     box.append(row);
@@ -871,17 +970,43 @@ function renderStore() {
   const b = document.createElement('button');
   b.className = 'gold';
   b.textContent = hasId ? 'Owned' : 'Buy';
-  b.disabled = hasId || bank < ID_PRICE;
+  b.disabled = hasId || spendable() < ID_PRICE;
   b.onclick = buyId;
   row.append(b);
   box.append(row);
+  // Credit card: bought with cash, then lets you spend below zero
+  const card = document.createElement('div');
+  card.className = 'item';
+  card.innerHTML = `<div class="icon">💳</div>
+    <div><div><span class="name">Credit Card</span><span class="price">${fmt(CARD_PRICE)}</span></div>
+    <div class="desc">Spend down to ${fmt(-CARD_LIMITS[0])} anywhere: bets, shops, the gym, even rent. ${ratePct(CARD_RATE)} interest a day while you're below zero. Upgrade the limit at the Bank.</div>
+    <div class="owned">${cardLimit ? `In your wallet ✓ (limit ${fmt(cardLimit)})` : 'Pay with cash.'}</div></div>`;
+  const cb = document.createElement('button');
+  cb.className = 'gold';
+  cb.textContent = cardLimit ? 'Owned' : 'Buy';
+  cb.disabled = !!cardLimit || bank < CARD_PRICE;
+  cb.onclick = buyCard;
+  card.append(cb);
+  box.append(card);
+}
+
+function buyCard() {
+  if (cardLimit || bank < CARD_PRICE) return;
+  bank -= CARD_PRICE;
+  save('rtb_bank', bank);
+  cardLimit = CARD_LIMITS[0];
+  save('rtb_card', cardLimit);
+  ching();
+  setSMsg(`💳 Got a credit card. You can spend down to ${fmt(-cardLimit)} now.`, 'good');
+  renderStore();
+  renderStats();
 }
 
 const ID_PRICE = 250;
 let hasId = load('rtb_id', 0) === 1;
 
 function buyId() {
-  if (hasId || bank < ID_PRICE) return;
+  if (hasId || spendable() < ID_PRICE) return;
   bank -= ID_PRICE;
   save('rtb_bank', bank);
   hasId = true;
@@ -895,7 +1020,7 @@ function buyId() {
 
 function buy(k) {
   const it = ITEMS[k];
-  if (bank < it.price) return;
+  if (spendable() < it.price) return;
   bank -= it.price;
   save('rtb_bank', bank);
   inv[k]++;
@@ -1281,6 +1406,11 @@ document.addEventListener('keydown', e => {
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); $('modalBtn').click(); }
     return;
   }
+  if (crossing) {
+    const dir = CROSS_KEYS[e.code];
+    if (dir) { e.preventDefault(); if (!e.repeat) hop(dir); }
+    return;
+  }
   if (loc === 'bar' && simon && /^Digit[1-4]$/.test(e.code)) {
     e.preventDefault();
     if (!e.repeat) pressPad(Number(e.code.slice(5)) - 1);
@@ -1577,7 +1707,7 @@ function renderDrinks() {
     const b = document.createElement('button');
     b.className = 'gold';
     b.textContent = 'Buy';
-    b.disabled = bank < it.price || !!drink || !!simon;
+    b.disabled = spendable() < it.price || !!drink || !!simon;
     b.onclick = () => buyDrink(k);
     row.append(b);
     box.append(row);
@@ -1586,7 +1716,7 @@ function renderDrinks() {
 
 function buyDrink(k) {
   const it = DRINKS[k];
-  if (drink || simon || bank < it.price) return;
+  if (drink || simon || spendable() < it.price) return;
   bank -= it.price;
   save('rtb_bank', bank);
   drink = { k, hands: it.hands };
@@ -1770,17 +1900,17 @@ function renderGym() {
     : 'Ready to sweat?';
   $('gymPay').classList.toggle('hidden', paid);
   $('gymPay').textContent = `Pay ${fmt(GYM_FEE)}`;
-  $('gymPay').disabled = bank < GYM_FEE;
+  $('gymPay').disabled = spendable() < GYM_FEE;
   $('gymStart').classList.toggle('hidden', !paid || working);
   $('gymStart').textContent = run ? '🏃 Work out again' : '🏃 Work out';
   rcan.classList.toggle('hidden', !paid || !run);
-  $('gymInfo').textContent = !paid ? (bank < GYM_FEE ? `You need ${fmt(GYM_FEE)}. Come back when you have it.` : '')
+  $('gymInfo').textContent = !paid ? (spendable() < GYM_FEE ? `You need ${fmt(GYM_FEE)}. Come back when you have it.` : '')
     : working ? 'Tap the game or press Space to jump.'
     : `🚬 Cigarettes smoked: ${cigsSmoked}. Every ${DODGES_PER_CIG} dodges takes one off. A workout takes ${DAYS_PER_EVENT} days.`;
 }
 
 function payGym() {
-  if (gymPaid() || bank < GYM_FEE) return;
+  if (gymPaid() || spendable() < GYM_FEE) return;
   bank -= GYM_FEE;
   save('rtb_bank', bank);
   gymPaidMonth = month;
@@ -1917,6 +2047,403 @@ $('gymPay').onclick = payGym;
 $('gymStart').onclick = startWorkout;
 rcan.addEventListener('pointerdown', e => { e.preventDefault(); jump(); });
 
+// ---------- Traffic: a crossy-road crossing on some trips ----------
+const TRAFFIC_FROM = 3;          // no traffic before this month
+const TRAFFIC_BASE = 0.08;       // chance per trip in that month
+const TRAFFIC_GROWTH = 0.02;     // added each month after
+const TRAFFIC_MAX = 0.3;
+const HOSPITAL_BILL = 150;
+// Grid in CSS px: row 0 is the far curb (the goal), the last row is where you start, and the median is safe
+const TR = { cell: 30, cols: 10, rows: 11, median: 5 };
+TR.w = TR.cell * TR.cols;
+TR.h = TR.cell * TR.rows;
+const VEHICLES = [   // w in cells
+  { icon: '🚗', w: 1 }, { icon: '🚕', w: 1 }, { icon: '🚙', w: 1 }, { icon: '🚓', w: 1 }, { icon: '🚚', w: 1.5 },
+];
+const CROSS_KEYS = {
+  ArrowUp: 'up', KeyW: 'up', Space: 'up', ArrowDown: 'down', KeyS: 'down',
+  ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right',
+};
+const HOPS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+let crossing = null;   // { dest, state: 'playing'|'won'|'crashed', col, row, last, lanes: [{ row, dir, speed, cars: [{ x, w, icon }] }] }
+
+const placeName = k => k === 'home' ? 'home' : `the ${PLACES[k].name}`;
+const trafficChance = () => month < TRAFFIC_FROM ? 0 : Math.min(TRAFFIC_MAX, TRAFFIC_BASE + (month - TRAFFIC_FROM) * TRAFFIC_GROWTH);
+const trafficSpeed = () => Math.min(1.5, 1 + Math.max(0, month - TRAFFIC_FROM) * 0.04);   // cars get faster too
+
+const tcan = $('road');
+const tctx = tcan.getContext('2d');
+(function setupRoad() {
+  const dpr = window.devicePixelRatio || 1;
+  tcan.width = TR.w * dpr;
+  tcan.height = TR.h * dpr;
+  tctx.scale(dpr, dpr);
+})();
+
+// Cars wrap around a loop a little wider than the road, so they enter and leave out of sight
+const LANE_LO = -1.5 * TR.cell;
+const LANE_LEN = TR.w + 3 * TR.cell;
+
+function makeLanes() {
+  const C = TR.cell, lanes = [];
+  let dir = 1;
+  for (let row = 1; row < TR.rows - 1; row++) {
+    if (row === TR.median) continue;
+    dir = -dir;
+    const cars = [];
+    let x = LANE_LO + Math.random() * 2 * C;
+    for (;;) {
+      const v = VEHICLES[Math.floor(Math.random() * VEHICLES.length)];
+      const w = v.w * C;
+      // Every gap, including the one across the wrap, is at least 1.6 cells: room to stand
+      if (x + w > LANE_LO + LANE_LEN - 1.6 * C) break;
+      cars.push({ x: x + w / 2, w, icon: v.icon });
+      x += w + (1.6 + Math.random() * 2.6) * C;
+    }
+    lanes.push({ row, dir, speed: (40 + Math.random() * 55) * trafficSpeed(), cars });
+  }
+  return lanes;
+}
+
+function startCrossing(dest, x) {
+  crossing = { dest, state: 'playing', col: Math.floor(TR.cols / 2), row: TR.rows - 1, last: performance.now(), lanes: makeLanes() };
+  placeBus(dest, x);   // the bus stops between the two locations where traffic hit
+  renderMap();
+  beep(300, 0.12, 'square', 0.08);
+  setTimeout(() => beep(300, 0.2, 'square', 0.08), 160);
+  $('trafficText').textContent = `Get across to reach ${placeName(dest)}. Get hit and it's a ${fmt(HOSPITAL_BILL)} hospital bill.`;
+  $('traffic').classList.remove('hidden');
+  drawCrossing();
+  requestAnimationFrame(crossLoop);
+}
+
+function hop(dir) {
+  const c = crossing;
+  if (!c || c.state !== 'playing') return;
+  const [dc, dr] = HOPS[dir];
+  c.col = Math.max(0, Math.min(TR.cols - 1, c.col + dc));
+  c.row = Math.max(0, Math.min(TR.rows - 1, c.row + dr));
+  beep(dir === 'up' ? 620 : 520, 0.04, 'square', 0.04);
+  if (c.row === 0) return endCrossing(true);
+  if (crossHit()) endCrossing(false);
+  else drawCrossing();
+}
+
+// Is a car on the player's square? The boxes are shrunk a little so near misses count as misses
+function crossHit() {
+  const c = crossing, lane = c.lanes.find(l => l.row === c.row);
+  if (!lane) return false;
+  const px = c.col * TR.cell + TR.cell / 2;
+  return lane.cars.some(car => Math.abs(car.x - px) < car.w / 2 + TR.cell / 2 - 7);
+}
+
+function crossLoop(now) {
+  const c = crossing;
+  if (!c || c.state !== 'playing') return;
+  const dt = Math.max(0, Math.min(0.033, (now - c.last) / 1000));
+  c.last = now;
+  for (const lane of c.lanes) {
+    for (const car of lane.cars) {
+      car.x += lane.dir * lane.speed * dt;
+      car.x = LANE_LO + (((car.x - LANE_LO) % LANE_LEN) + LANE_LEN) % LANE_LEN;
+    }
+  }
+  if (crossHit()) return endCrossing(false);
+  drawCrossing();
+  requestAnimationFrame(crossLoop);
+}
+
+function drawCrossing() {
+  const c = crossing, g = tctx, C = TR.cell;
+  for (let row = 0; row < TR.rows; row++) {
+    const curb = row === 0 || row === TR.rows - 1;
+    g.fillStyle = curb ? '#7d7d70' : row === TR.median ? '#3f6b46' : '#363636';
+    g.fillRect(0, row * C, TR.w, C);
+  }
+  g.fillStyle = 'rgba(245,197,66,.35)';
+  g.fillRect(0, 0, TR.w, C);   // the goal glows
+  // Dashed lines between neighbouring lanes
+  g.strokeStyle = 'rgba(255,255,255,.45)';
+  g.lineWidth = 2;
+  g.setLineDash([10, 10]);
+  for (const lane of c.lanes) {
+    if (c.lanes.some(l => l.row === lane.row + 1)) {
+      g.beginPath();
+      g.moveTo(0, (lane.row + 1) * C);
+      g.lineTo(TR.w, (lane.row + 1) * C);
+      g.stroke();
+    }
+  }
+  g.setLineDash([]);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  g.fillStyle = '#fff';
+  g.font = 'bold 13px system-ui, sans-serif';
+  g.fillText(`🏁 ${PLACES[c.dest].name}`, TR.w / 2, C / 2);
+  for (const lane of c.lanes) {
+    for (const car of lane.cars) {
+      g.save();
+      g.translate(car.x, lane.row * C + C / 2 + 1);
+      if (lane.dir > 0) g.scale(-1, 1);   // vehicle emoji face left
+      g.font = `${Math.round(car.w - 4)}px system-ui, sans-serif`;
+      g.fillText(car.icon, 0, 0);
+      g.restore();
+    }
+  }
+  // The bus, turned to face up the screen
+  g.save();
+  g.translate(c.col * C + C / 2, c.row * C + C / 2);
+  g.rotate(Math.PI / 2);
+  g.font = '24px system-ui, sans-serif';
+  g.fillText('🚌', 0, 1);
+  g.restore();
+  if (c.state === 'crashed') {
+    g.font = '34px system-ui, sans-serif';
+    g.fillText('💥', c.col * C + C / 2, c.row * C + C / 2);
+  }
+  const banner = c.state === 'won' ? 'Made it! 🎉' : c.state === 'crashed' ? 'Crashed!' : '';
+  if (banner) {
+    g.fillStyle = 'rgba(0,0,0,.6)';
+    g.fillRect(20, TR.h / 2 - 20, TR.w - 40, 40);
+    g.fillStyle = c.state === 'crashed' ? '#ff8a8a' : '#f5c542';
+    g.font = 'bold 18px system-ui, sans-serif';
+    g.fillText(banner, TR.w / 2, TR.h / 2);
+  }
+}
+
+function endCrossing(made) {
+  const c = crossing;
+  c.state = made ? 'won' : 'crashed';
+  drawCrossing();
+  if (made) {
+    beep(1046, 0.1, 'triangle', 0.12);
+    setTimeout(() => beep(1568, 0.2, 'triangle', 0.12), 90);
+  } else {
+    beep(110, 0.45, 'sawtooth', 0.18);
+  }
+  travelTimer = setTimeout(() => {
+    $('traffic').classList.add('hidden');
+    crossing = null;
+    if (made) return drive(c.dest);
+    // Crashed: you're patched up and back where you started, with a bill that can put you in the red
+    bank -= HOSPITAL_BILL;
+    save('rtb_bank', bank);
+    traveling = false;
+    placeBus(loc);
+    showLocation();
+    showModal('🚑', 'Crash!', `You got hit in traffic. The hospital patched you up and billed you ${fmt(HOSPITAL_BILL)}. You've got ${fmt(bank)} now, and you're back at ${placeName(loc)}.`, 'Ouch', () => {}, 'bad');
+  }, made ? 600 : 1100);
+}
+
+document.querySelectorAll('[data-move]').forEach(b => b.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  hop(b.dataset.move);
+}));
+// Tapping the road hops toward the tap: sideways if it's more to the side than ahead or behind
+tcan.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (!crossing) return;
+  const r = tcan.getBoundingClientRect();
+  const x = (e.clientX - r.left) / r.width * TR.w - (crossing.col + 0.5) * TR.cell;
+  const y = (e.clientY - r.top) / r.height * TR.h - (crossing.row + 0.5) * TR.cell;
+  hop(Math.abs(x) > Math.abs(y) ? (x < 0 ? 'left' : 'right') : (y < 0 ? 'up' : 'down'));
+});
+
+// ---------- Bank: savings, loans and a credit score ----------
+const SAVE_RATE = 0.002;       // savings interest per day (about 6% a month)
+const LOAN_FEE = 0.05;         // added to the balance up front
+const LOAN_DAYS = 30;          // the bank collects whatever is left after this many days
+const CREDIT_ON_TIME = 20;     // credit for paying a loan off before it's due
+const CREDIT_COLLECTED = 75;   // credit lost when the bank has to collect
+const CREDIT_HIST = [-250, 150];   // range of the repayment part of the score
+// Borrow limit and daily interest by credit score
+const CREDIT_TIERS = [
+  { min: 300, name: 'Poor', limit: 0, rate: 0 },
+  { min: 500, name: 'Fair', limit: 150, rate: 0.012 },
+  { min: 580, name: 'Good', limit: 500, rate: 0.008 },
+  { min: 670, name: 'Very good', limit: 1200, rate: 0.005 },
+  { min: 740, name: 'Excellent', limit: 3000, rate: 0.003 },
+];
+
+// Credit card: bought at the Store, limits raised here once your score is high enough
+const CARD_PRICE = 500;
+const CARD_LIMITS = [500, 1000, 2000, 5000];
+const CARD_SCORES = [0, 580, 670, 740];   // credit score needed for each limit
+const CARD_RATE = 0.005;                  // daily interest on a negative balance
+
+let cardLimit = load('rtb_card', 0);   // 0 = no card
+const spendable = () => bank + cardLimit;   // how far you can spend, card included
+
+let savings = load('rtb_savings', 0);
+let loan = loadLoan();   // { bal, rate, due } where due is a day number from today()
+let creditHist = load('rtb_credit', 0);   // repayment record: on-time payoffs minus collections
+
+function loadLoan() {
+  try { const l = JSON.parse(localStorage.getItem('rtb_loan') || 'null'); return l && l.bal > 0 ? l : null; }
+  catch { return null; }
+}
+function saveBank() {
+  save('rtb_savings', savings);
+  save('rtb_credit', creditHist);
+  try { localStorage.setItem('rtb_loan', JSON.stringify(loan)); } catch {}
+}
+const today = () => (month - 1) * DAYS_PER_MONTH + day;
+const ratePct = r => (r * 100).toFixed(1).replace(/\.0$/, '') + '%';
+const signed = n => (n < 0 ? '−' : '+') + Math.abs(n);
+
+// The score is 450 plus these parts, kept between 300 and 850
+function creditParts() {
+  const net = bank + savings - (loan ? loan.bal : 0);
+  return {
+    jobs: 50 * ((unemployed ? 0 : 1) + (barJob ? 1 : 0)),
+    ranks: 12 * ((unemployed ? 0 : rankIndex(xp)) + (barJob ? rankIndex(barXp, BAR_RANKS) : 0)),
+    history: creditHist,
+    money: Math.max(-100, Math.min(120, Math.round(net / 25))),
+  };
+}
+function creditScore() {
+  const p = creditParts();
+  return Math.max(300, Math.min(850, 450 + p.jobs + p.ranks + p.history + p.money));
+}
+function creditTier(s = creditScore()) {
+  let i = 0;
+  while (i + 1 < CREDIT_TIERS.length && s >= CREDIT_TIERS[i + 1].min) i++;
+  return i;
+}
+
+function setKMsg(text, kind = '') {
+  const m = $('kmsg');
+  m.textContent = text;
+  m.className = 'msg ' + kind;
+}
+
+function renderBank(resetInputs = false) {
+  const score = creditScore(), ti = creditTier(score), t = CREDIT_TIERS[ti], next = CREDIT_TIERS[ti + 1], p = creditParts();
+  $('creditCard').innerHTML = careerCardHTML(
+    `📊 Credit ${score} · ${t.name}`, next ? `Next: ${next.name} at ${next.min}` : 'Top tier', (score - 300) / 550 * 100,
+    `Jobs ${signed(p.jobs)} · Ranks ${signed(p.ranks)} · Repayment ${signed(p.history)} · Money ${signed(p.money)}`);
+  $('saveHead').textContent = `🐷 Savings: ${fmt(savings)}`;
+  $('saveDesc').textContent = `Earns ${ratePct(SAVE_RATE)} a day (about 6% a month). If your cash can't cover rent, the rest comes out of savings.`;
+  $('deposit').disabled = bank < 1;
+  $('withdraw').disabled = Math.round(savings) < 1;
+  const lb = $('loanBtn');
+  if (loan) {
+    const owed = Math.ceil(loan.bal), left = loan.due - today();
+    $('loanHead').textContent = `💸 Loan: you owe ${fmt(owed)}`;
+    $('loanDesc').textContent = `${ratePct(loan.rate)} interest a day. Due in ${left} day${left === 1 ? '' : 's'}: whatever's left then gets taken from savings, then cash, even if that puts you in the red, and costs ${CREDIT_COLLECTED} credit. Paying it off first adds ${CREDIT_ON_TIME}.`;
+    lb.textContent = 'Repay';
+    lb.disabled = bank < 1;
+  } else if (t.limit) {
+    $('loanHead').textContent = `💸 Borrow up to ${fmt(t.limit)}`;
+    $('loanDesc').textContent = `${ratePct(LOAN_FEE)} fee up front, then ${ratePct(t.rate)} interest a day. Due in ${LOAN_DAYS} days. One loan at a time.`;
+    lb.textContent = 'Borrow';
+    lb.disabled = false;
+  } else {
+    $('loanHead').textContent = '💸 No loans yet';
+    $('loanDesc').textContent = `The bank won't lend below a ${CREDIT_TIERS[1].min} score. Jobs, promotions, money in the bank and paying loans back on time all raise it.`;
+  }
+  $('loanRow').classList.toggle('hidden', !loan && !t.limit);
+  const ci = CARD_LIMITS.indexOf(cardLimit), nextLimit = CARD_LIMITS[ci + 1], need = CARD_SCORES[ci + 1];
+  $('cardHead').textContent = cardLimit ? `💳 Card limit: ${fmt(cardLimit)}` : '💳 No credit card';
+  $('cardDesc').textContent = !cardLimit ? `Buy one at the Store for ${fmt(CARD_PRICE)} to spend below zero.`
+    : (bank < 0 ? `You're ${fmt(-bank)} into it, at ${ratePct(CARD_RATE)} a day. Deposit cash to pay it down. ` : `${ratePct(CARD_RATE)} interest a day while you're below zero. `)
+      + (nextLimit ? `Upgrade to ${fmt(nextLimit)} with a credit score of ${need}${score < need ? ` (you have ${score})` : ''}.` : 'That\'s the top limit.');
+  $('cardRow').classList.toggle('hidden', !cardLimit || !nextLimit);
+  $('cardUp').textContent = nextLimit ? `Upgrade to ${fmt(nextLimit)}` : '';
+  $('cardUp').disabled = score < need;
+  $('bankInfo').textContent = 'Banking takes no time. Interest is added every day that passes.';
+  if (resetInputs) {
+    $('saveAmt').value = Math.max(0, bank) || Math.round(savings) || '';
+    $('loanAmt').value = loan ? Math.min(Math.ceil(loan.bal), Math.max(0, bank)) || '' : t.limit || '';
+  }
+}
+
+function bankAmount(id) { return Math.floor(Number($(id).value) || 0); }
+
+function ching() {
+  beep(1568, 0.08, 'triangle', 0.08);
+  setTimeout(() => beep(2093, 0.25, 'triangle', 0.08), 70);
+}
+
+function bankDone(text, kind = 'good') {
+  saveBank();
+  save('rtb_bank', bank);
+  if (kind === 'good') ching();
+  setKMsg(text, kind);
+  renderBank(true);
+  renderStats();
+}
+
+function deposit() {
+  const amt = Math.min(bankAmount('saveAmt'), bank);
+  if (amt < 1) return setKMsg('Enter an amount you have in cash.', 'bad');
+  bank -= amt;
+  savings += amt;
+  bankDone(`Deposited ${fmt(amt)}.`);
+}
+
+function withdraw() {
+  let amt = bankAmount('saveAmt');
+  if (amt < 1 || Math.round(savings) < 1) return setKMsg('Enter an amount to withdraw.', 'bad');
+  if (amt >= Math.round(savings)) { amt = Math.round(savings); savings = 0; }   // take the cents too
+  else savings -= amt;
+  bank += amt;
+  updateHigh();
+  bankDone(`Withdrew ${fmt(amt)}.`);
+}
+
+function loanAction() {
+  const amt = bankAmount('loanAmt');
+  if (loan) {
+    const pay = Math.min(amt, Math.ceil(loan.bal), bank);
+    if (pay < 1) return setKMsg('Enter an amount you have in cash.', 'bad');
+    bank -= pay;
+    loan.bal -= pay;
+    if (loan.bal < 0.5) {
+      loan = null;
+      creditHist = Math.min(CREDIT_HIST[1], creditHist + CREDIT_ON_TIME);
+      return bankDone(`Paid ${fmt(pay)}. Loan paid off! +${CREDIT_ON_TIME} credit.`);
+    }
+    return bankDone(`Paid ${fmt(pay)}. You still owe ${fmt(Math.ceil(loan.bal))}.`);
+  }
+  const t = CREDIT_TIERS[creditTier()];
+  if (!t.limit) return;
+  if (amt < 1 || amt > t.limit) return setKMsg(`You can borrow ${fmt(1)} to ${fmt(t.limit)}.`, 'bad');
+  bank += amt;
+  loan = { bal: amt * (1 + LOAN_FEE), rate: t.rate, due: today() + LOAN_DAYS };
+  bankDone(`Borrowed ${fmt(amt)}. You owe ${fmt(Math.ceil(loan.bal))} with the fee, due in ${LOAN_DAYS} days.`);
+}
+
+// The loan came due: take it from savings first, then cash, which can go negative
+function collectLoan() {
+  const owed = Math.ceil(loan.bal);
+  const fromSavings = Math.min(Math.floor(savings), owed);
+  savings -= fromSavings;
+  bank -= owed - fromSavings;
+  loan = null;
+  creditHist = Math.max(CREDIT_HIST[0], creditHist - CREDIT_COLLECTED);
+  saveBank();
+  save('rtb_bank', bank);
+  showModal('🏦', 'Loan collected',
+    `Your loan was due, so the bank took the ${fmt(owed)} you owed` + (fromSavings ? ` (${fmt(fromSavings)} from savings)` : '')
+    + `. You've got ${fmt(bank)} in cash. −${CREDIT_COLLECTED} credit.`,
+    'OK', () => (loc === 'casino' ? toBet() : loc === 'bank' ? renderBank(true) : renderStats()), 'bad');
+}
+
+function upgradeCard() {
+  const i = CARD_LIMITS.indexOf(cardLimit);
+  if (!cardLimit || i + 1 >= CARD_LIMITS.length || creditScore() < CARD_SCORES[i + 1]) return;
+  cardLimit = CARD_LIMITS[i + 1];
+  save('rtb_card', cardLimit);
+  bankDone(`💳 Limit raised: you can spend down to ${fmt(-cardLimit)}.`);
+}
+
+$('cardUp').onclick = upgradeCard;
+$('deposit').onclick = deposit;
+$('withdraw').onclick = withdraw;
+$('loanBtn').onclick = loanAction;
+
 // ---------- Calendar and rent ----------
 function rentFor(m) { return Math.round(BASE_RENT * RENT_GROWTH ** (m - 1)); }
 
@@ -1926,36 +2453,60 @@ function renderCalendar() {
   $('calMonth').textContent = `📅 Month ${month} · Day ${Math.min(day + 1, DAYS_PER_MONTH)}/${DAYS_PER_MONTH}`;
   const r = $('calRent');
   r.textContent = left ? `Rent ${fmt(rent)} in ${left} day${left === 1 ? '' : 's'}` : `Rent ${fmt(rent)} due now`;
-  r.classList.toggle('short', bank < rent);
+  const short = spendable() + savings < rent;   // savings and the card cover rent too
+  r.classList.toggle('short', short);
   const fill = $('calFill');
   fill.style.width = (day / DAYS_PER_MONTH * 100) + '%';
-  fill.classList.toggle('late', bank < rent && left <= 6);
+  fill.classList.toggle('late', short && left <= 6);
+  const due = loan && loan.due - today();
+  $('calNote').textContent = loan
+    ? `💸 Loan of ${fmt(Math.ceil(loan.bal))} due in ${due} day${due === 1 ? '' : 's'}. Pay it at the Bank.`
+    : 'A hand takes 1 day, everything else takes 3. Rent is due at the end of each 30-day month.';
 }
 
 function saveCalendar() { save('rtb_month', month); save('rtb_day', day); }
 
 function passTime(days) {
+  // Interest compounds every day
+  for (let i = 0; i < days; i++) {
+    savings *= 1 + SAVE_RATE;
+    if (loan) loan.bal *= 1 + loan.rate;
+    if (cardLimit && bank < 0) bank -= Math.ceil(-bank * CARD_RATE);   // card interest, whole dollars
+  }
+  save('rtb_bank', bank);
   day += days;
+  if (loan && today() >= loan.due) collectLoan();
+  saveBank();
   if (day >= DAYS_PER_MONTH) {
     const rent = rentFor(month);
-    if (bank >= rent) {
-      bank -= rent;
+    if (spendable() + savings >= rent) {
+      // Cash first, then savings, then the card for the rest
+      const fromCash = Math.max(0, Math.min(bank, rent));
+      const fromSavings = Math.min(savings, rent - fromCash);
+      const fromCard = rent - fromCash - fromSavings;
+      bank -= fromCash + fromCard;
+      savings = Math.max(0, savings - fromSavings);
       month++;
       day -= DAYS_PER_MONTH;
       saveCalendar();
+      saveBank();
       save('rtb_bank', bank);
+      const parts = [fromSavings >= 0.5 && `${fmt(fromSavings)} from savings`, fromCard > 0 && `${fmt(fromCard)} on your card`].filter(Boolean);
       showModal('🏠', `Month ${month - 1} is over`,
-        `You paid ${fmt(rent)} in rent and have ${fmt(bank)} left. Next month's rent is ${fmt(rentFor(month))}.`,
-        'Keep going', () => (loc === 'casino' ? toBet() : renderStats()));
+        `You paid ${fmt(rent)} in rent` + (parts.length ? ` (${parts.join(', ')})` : '')
+        + ` and have ${fmt(bank)} in cash` + (savings >= 0.5 ? ` and ${fmt(savings)} saved` : '') + ` left. Next month's rent is ${fmt(rentFor(month))}.`
+        + (month === TRAFFIC_FROM ? ` Watch out: from now on, traffic can hold you up when you travel.` : ''),
+        'Keep going', () => (loc === 'casino' ? toBet() : loc === 'bank' ? renderBank(true) : renderStats()));
     } else {
-      const had = bank;
+      const had = Math.max(0, spendable()) + savings;
       showModal('📦', 'Evicted!',
-        `Rent for month ${month} was ${fmt(rent)} and you only had ${fmt(had)}. You lose. Back to month 1 with ${fmt(START_MONEY)} and no jobs. Your high score is kept.`,
+        `Rent for month ${month} was ${fmt(rent)} and you could only cover ${fmt(had)}${savings >= 0.5 || cardLimit ? ' counting savings and your card' : ''}. You lose. Back to month 1 with ${fmt(START_MONEY)} and no jobs. Your high score is kept.`,
         'Start over', restartGame, 'bad');
     }
   }
   saveCalendar();
   renderStats();
+  if (loc === 'bank') renderBank();
 }
 
 function restartGame() {
@@ -1987,8 +2538,16 @@ function restartGame() {
   simon = null;
   saveBar();
   saveDrink();
+  savings = 0;
+  cardLimit = 0;
+  save('rtb_card', 0);
+  loan = null;
+  creditHist = 0;
+  saveBank();
   clearTimeout(travelTimer);
   traveling = false;
+  crossing = null;
+  $('traffic').classList.add('hidden');
   $('bus').classList.remove('right');
   $('bus').style.left = PLACES.casino.x + '%';
   $('wager').value = Math.min(10, bank);
