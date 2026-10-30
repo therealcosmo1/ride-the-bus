@@ -17,6 +17,11 @@
     --btn-hover: #279160;
   }
   * { box-sizing: border-box; }
+  /* No double-tap zoom, which also removes the browser's wait-and-see tap delay */
+  html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
+  button, .loc, .kitchen, .flappy {
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
   body {
     margin: 0;
     min-height: 100vh;
@@ -149,6 +154,8 @@
   }
   .loc:hover:not(:disabled) { background: none; color: var(--text); }
   .loc:disabled { opacity: 1; cursor: default; }
+  /* Keep the centring when pressed; the generic button press nudge would replace it */
+  .loc:active:not(:disabled) { transform: translateX(-50%) translateY(1px); }
   .loc .icon {
     font-size: 26px; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
     background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.2);
@@ -167,11 +174,12 @@
   .bus.right { transform: translateX(-50%) scaleX(-1); }
   .loc:not(:disabled) .icon { animation: beckon 1.6s ease-in-out infinite; }
   .loc:hover:not(:disabled) .icon { border-color: #fff; }
-  @keyframes beckon { 50% { transform: scale(1.1); } }
+  /* Glow rather than grow, so the tap target never changes shape under a finger */
+  @keyframes beckon { 50% { box-shadow: 0 0 0 4px rgba(245,197,66,.35); } }
   .map-hint { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
 
   /* Burger joint */
-  .kitchen { position: relative; width: 240px; height: 240px; margin: 4px auto 14px; touch-action: manipulation; cursor: pointer; }
+  .kitchen { position: relative; width: 240px; height: 240px; margin: 4px auto 14px; touch-action: none; cursor: pointer; }
   .grill {
     position: absolute; inset: 34px; border-radius: 50%;
     background: repeating-linear-gradient(90deg, #2b2b2b 0 10px, #4a4a4a 10px 14px);
@@ -203,7 +211,7 @@
   .career { background: rgba(0,0,0,.2); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
   .flappy {
     display: block; width: 100%; max-width: 300px; aspect-ratio: 300 / 360; margin: 0 auto 12px;
-    border-radius: 10px; touch-action: manipulation; cursor: pointer;
+    border-radius: 10px; touch-action: none; cursor: pointer;
   }
   .apps { list-style: none; margin: 12px 0 0; padding: 0; font-size: 13px; color: var(--muted); }
   .apps:empty { display: none; }
@@ -1019,13 +1027,16 @@ function tick(now) {
   requestAnimationFrame(tick);
 }
 
-function hit() {
+function hit(e) {
   if (!shift) return;
   if (!check) {
     // Pressing before the check appears doesn't count, same as DbD
     return;
   }
-  const pos = (performance.now() - check.t0) / check.dur;
+  // The event's own timestamp is when the finger or key actually went down,
+  // so a busy frame or slow handler doesn't count against the player
+  const at = e && e.timeStamp > check.t0 ? Math.min(e.timeStamp, performance.now()) : performance.now();
+  const pos = (at - check.t0) / check.dur;
   const d = pos - check.start;
   const result = d >= 0 && d < check.great ? 'great' : d >= 0 && d <= check.good ? 'good' : 'miss';
   resolve(pos, result);
@@ -1081,8 +1092,9 @@ function endShift(text, kind) {
 }
 
 $('shift').onclick = startShift;
-$('flip').onclick = hit;
-$('kitchen').addEventListener('pointerdown', e => { e.preventDefault(); hit(); });
+$('flip').addEventListener('pointerdown', e => { e.preventDefault(); hit(e); });
+$('flip').addEventListener('click', e => { if (e.detail === 0) hit(e); });   // keyboard activation
+$('kitchen').addEventListener('pointerdown', e => { e.preventDefault(); hit(e); });
 document.addEventListener('keydown', e => {
   if (modalOpen()) {
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); $('modalBtn').click(); }
@@ -1098,7 +1110,7 @@ document.addEventListener('keydown', e => {
   if (loc !== 'burger') return;
   e.preventDefault();
   if (e.repeat) return;
-  if (shift) hit(); else startShift();
+  if (shift) hit(e); else startShift();
 });
 
 // ---------- Home: job hunting (a flappy-bird run through hoops) ----------
@@ -1288,6 +1300,8 @@ function endApplication(hired) {
 
 $('apply').onclick = applyForJob;
 fcan.addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
+// iOS only shows :active button presses when the page listens for touches
+document.addEventListener('touchstart', () => {}, { passive: true });
 
 // ---------- Calendar and rent ----------
 function rentFor(m) { return Math.round(BASE_RENT * RENT_GROWTH ** (m - 1)); }
