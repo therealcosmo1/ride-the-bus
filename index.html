@@ -2497,7 +2497,7 @@ const DEGREES = {
   stats: { icon: '📊', name: 'Statistics', perk: 'The casino shows the odds of every guess.' },
   finance: { icon: '💼', name: 'Finance', perk: 'Savings earn 0.3% a day instead of 0.2%, and loans and your credit card charge 25% less interest.' },
   medical: { icon: '🩺', name: 'Medicine', perk: 'Hospital bills are halved, smoking withdrawal is half as bad, and 3 gym dodges take a cigarette off instead of 5.' },
-  civil: { icon: '🏗️', name: 'Civil Engineering', perk: 'You know the roads: half the chance of traffic on every trip.' },
+  civil: { icon: '🏗️', name: 'Civil Engineering', perk: 'You know the roads: half the chance of traffic on every trip, and cars top out 25% slower.' },
   // What it does stays a mystery until you graduate (reveal)
   ee: { icon: '⚡', name: 'Electrical Engineering', perk: 'Your advisor says it "opens doors". Nobody will say which ones.',
     reveal: 'Your partner is a boyfriend now: loyal for life, three times the daily cash, and the Store sells parts that make him earn even more.' },
@@ -3359,7 +3359,13 @@ const DRUNK_TRAFFIC = 1.35;   // a drink in your system makes traffic 35% more l
 const trafficChance = () => month < TRAFFIC_FROM ? 0
   : Math.min(TRAFFIC_MAX, TRAFFIC_BASE + (month - TRAFFIC_FROM) * TRAFFIC_GROWTH)
     * (hasDegree('civil') ? 0.5 : 1) * (drink ? DRUNK_TRAFFIC : 1);
-const trafficSpeed = () => Math.min(1.5, 1 + Math.max(0, month - TRAFFIC_FROM) * 0.04);   // cars get faster too
+// Cars start slow and speed up each month until the traffic chance maxes out; Civil Engineering caps them lower
+const SPEED_START = 0.6, SPEED_TOP = 1.5, CIVIL_SPEED_CAP = 0.75;
+const TRAFFIC_MAX_MONTH = TRAFFIC_FROM + Math.round((TRAFFIC_MAX - TRAFFIC_BASE) / TRAFFIC_GROWTH);   // month 14
+const trafficSpeed = () => {
+  const t = Math.min(1, Math.max(0, month - TRAFFIC_FROM) / (TRAFFIC_MAX_MONTH - TRAFFIC_FROM));
+  return Math.min(SPEED_START + (SPEED_TOP - SPEED_START) * t, hasDegree('civil') ? SPEED_TOP * CIVIL_SPEED_CAP : SPEED_TOP);
+};
 
 const tcan = $('road');
 const tctx = tcan.getContext('2d');
