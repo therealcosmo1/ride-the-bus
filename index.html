@@ -1010,7 +1010,7 @@ function renderMap() {
   document.querySelectorAll('.loc').forEach(b => {
     b.classList.toggle('here', b.dataset.loc === loc);
     b.disabled = busy || b.dataset.loc === loc;
-    b.classList.toggle('locked', b.dataset.loc === 'bar' && !hasId);
+    b.classList.toggle('locked', b.dataset.loc === 'bar' && !hasId || b.dataset.loc === 'uni' && !hasDiploma);
   });
   $('mapHint').textContent = crossing ? '🚧 Stuck in traffic!'
     : mug ? '🔪 Getting mugged!'
@@ -1024,6 +1024,11 @@ function renderMap() {
 function travel(dest) {
   if (dest === 'bar' && !hasId) {
     $('mapHint').textContent = `🪪 The bouncer wants ID. Buy one at the Store for ${fmt(ID_PRICE)}.`;
+    beep(140, 0.15, 'sawtooth', 0.08);
+    return;
+  }
+  if (dest === 'uni' && !hasDiploma) {
+    $('mapHint').textContent = `📜 Admissions wants a high school diploma. The Store has one for ${fmt(DIPLOMA_PRICE)}.`;
     beep(140, 0.15, 'sawtooth', 0.08);
     return;
   }
@@ -1159,6 +1164,20 @@ function renderStore() {
   b.onclick = buyId;
   row.append(b);
   box.append(row);
+  // Diploma: a one-time purchase that gets you into the University
+  const dip = document.createElement('div');
+  dip.className = 'item';
+  dip.innerHTML = `<div class="icon">📜</div>
+    <div><div><span class="name">Diploma</span><span class="price">${fmt(DIPLOMA_PRICE)}</span></div>
+    <div class="desc">Someone's diploma. Happens to have your name on it. Gets you into the University.</div>
+    <div class="owned">${hasDiploma ? 'Framed on your wall ✓' : 'You need this to enroll at the University.'}</div></div>`;
+  const db = document.createElement('button');
+  db.className = 'gold';
+  db.textContent = hasDiploma ? 'Owned' : 'Buy';
+  db.disabled = hasDiploma || spendable() < DIPLOMA_PRICE;
+  db.onclick = buyDiploma;
+  dip.append(db);
+  box.append(dip);
   // Credit card: bought with cash, then lets you spend below zero
   const card = document.createElement('div');
   card.className = 'item';
@@ -1289,6 +1308,28 @@ function buyId() {
   beep(1568, 0.08, 'triangle', 0.08);
   setTimeout(() => beep(2093, 0.25, 'triangle', 0.08), 70);
   setSMsg('🪪 Got your ID. The Bar will let you in now.', 'good');
+  renderStore();
+  renderStats();
+}
+
+// Diploma: the University is locked without it. Saves from before it existed keep access if they'd started there.
+const DIPLOMA_PRICE = 200;
+let hasDiploma = (() => {
+  const v = load('rtb_diploma', -1);
+  if (v !== -1) return v === 1;
+  const xp = loadJSON('rtb_degxp', {});
+  return loadJSON('rtb_degrees', []).length > 0 || Object.values(xp).some(n => n > 0) || load('rtb_office', 0) === 1 || load('rtb_offer', 0) === 1;
+})();
+
+function buyDiploma() {
+  if (hasDiploma || spendable() < DIPLOMA_PRICE) return;
+  bank -= DIPLOMA_PRICE;
+  save('rtb_bank', bank);
+  hasDiploma = true;
+  save('rtb_diploma', 1);
+  beep(1568, 0.08, 'triangle', 0.08);
+  setTimeout(() => beep(2093, 0.25, 'triangle', 0.08), 70);
+  setSMsg("📜 Bought a diploma. Nobody at the University will check whose it was.", 'good');
   renderStore();
   renderStats();
 }
@@ -3928,6 +3969,7 @@ function saveAll() {
   saveBar();
   saveDrink();
   save('rtb_id', hasId ? 1 : 0);
+  save('rtb_diploma', hasDiploma ? 1 : 0);
   save('rtb_cigs', cigsSmoked);
   save('rtb_gympaid', gymPaidMonth);
   saveBank();
@@ -4099,6 +4141,8 @@ function restartGame() {
   inv = { cigs: 0, wagyu: 0 };
   bring.cigs = bring.wagyu = true;
   hasId = false;
+  hasDiploma = false;
+  save('rtb_diploma', 0);
   cigsSmoked = 0;
   save('rtb_cigs', 0);
   gymPaidMonth = 0;
