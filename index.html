@@ -3218,7 +3218,7 @@ function startCrossing(dest, x) {
   renderMap();
   beep(300, 0.12, 'square', 0.08);
   setTimeout(() => beep(300, 0.2, 'square', 0.08), 160);
-  $('trafficText').textContent = `Get across to reach ${placeName(dest)}. Get hit and it's a ${fmt(hospitalBill())} hospital bill.`;
+  $('trafficText').textContent = `Get across to reach ${placeName(dest)}. Get hit and it's a ${fmt(hospitalBill())} hospital bill. Tap the sides to move sideways, the middle top or bottom to go forward or back.`;
   $('traffic').classList.remove('hidden');
   drawCrossing();
   requestAnimationFrame(crossLoop);
@@ -3297,6 +3297,16 @@ function drawCrossing() {
       g.restore();
     }
   }
+  // Faint arrows marking the tap zones: left and right thirds, and the middle's top and bottom halves
+  g.save();
+  g.globalAlpha = 0.18;
+  g.fillStyle = '#fff';
+  g.font = 'bold 30px system-ui, sans-serif';
+  g.fillText('◀', TR.w / 6, TR.h / 2);
+  g.fillText('▶', TR.w * 5 / 6, TR.h / 2);
+  g.fillText('▲', TR.w / 2, TR.h / 4);
+  g.fillText('▼', TR.w / 2, TR.h * 3 / 4);
+  g.restore();
   // The bus, turned to face up the screen
   g.save();
   g.translate(c.col * C + C / 2, c.row * C + C / 2);
@@ -3347,17 +3357,22 @@ document.querySelectorAll('[data-move]').forEach(b => b.addEventListener('pointe
   e.preventDefault();
   hop(b.dataset.move);
 }));
-// Tapping anywhere on the overlay (road or not) hops toward the tap, measured from the bus:
-// sideways if it's more to the side than ahead or behind
+// Tapping anywhere on the overlay moves by fixed zones, measured on the road so they match its
+// arrows: the left and right thirds go sideways, the middle third's top half goes forward and its
+// bottom half back. Taps off the road count for the zone they line up with.
 $('traffic').addEventListener('pointerdown', e => {
   if (e.target.closest('[data-move]')) return;   // the arrow buttons handle themselves
   e.preventDefault();
   if (!crossing) return;
   const r = tcan.getBoundingClientRect();
-  const x = e.clientX - (r.left + (crossing.col + 0.5) * TR.cell * r.width / TR.w);
-  const y = e.clientY - (r.top + (crossing.row + 0.5) * TR.cell * r.height / TR.h);
-  hop(Math.abs(x) > Math.abs(y) ? (x < 0 ? 'left' : 'right') : (y < 0 ? 'up' : 'down'));
+  const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+  hop(fx < 1 / 3 ? 'left' : fx > 2 / 3 ? 'right' : fy < 0.5 ? 'up' : 'down');
 });
+// Every input here fires on pointerdown, so cancelling the touches themselves costs nothing and
+// stops iOS zooming on quick repeated taps, the arrow buttons included
+for (const type of ['touchstart', 'touchend']) {
+  $('traffic').addEventListener(type, e => { if (e.cancelable) e.preventDefault(); }, { passive: false });
+}
 
 // ---------- Bank: savings, loans and a credit score ----------
 const SAVE_RATE = 0.002;       // savings interest per day (about 6% a month)
