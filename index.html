@@ -322,9 +322,12 @@
   .mcard.done { background: #fff; opacity: .4; }
 
   /* Save codes */
-  .modal.savebox { z-index: 9; }
+  /* Top-aligned and scrollable so the paste box can sit above a phone keyboard */
+  .modal.savebox { z-index: 9; align-items: start; overflow-y: auto; }
+  .modal.savebox.typing { padding-bottom: 70vh; }   /* room to scroll the paste box up while typing */
+  /* 16px or more, or iOS zooms in when the box is focused */
   .savebox textarea {
-    width: 100%; font: 12px ui-monospace, Menlo, monospace; border-radius: 8px; border: none; padding: 8px;
+    width: 100%; font: 16px ui-monospace, Menlo, monospace; border-radius: 8px; border: none; padding: 8px;
     background: #fff; color: #111; resize: vertical; word-break: break-all; margin-bottom: 10px;
   }
   .savebox .save-sep { margin: 16px 0 8px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.12); }
@@ -416,7 +419,7 @@
       <textarea id="saveOut" readonly rows="4" aria-label="Your save code"></textarea>
       <div class="row"><button class="gold" id="saveCopy">Copy</button></div>
       <p class="save-sep">Have a code? Paste it here to load it. This replaces your current game.</p>
-      <textarea id="saveIn" rows="3" placeholder="Paste a save code" aria-label="Save code to load"></textarea>
+      <textarea id="saveIn" rows="3" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Paste a save code" aria-label="Save code to load"></textarea>
       <div class="save-msg" id="saveMsg"></div>
       <div class="row">
         <button class="gold" id="saveLoad">Load</button>
@@ -3782,11 +3785,14 @@ function exportSave() {
 }
 
 // Returns the decoded keys, or null if the code isn't a valid save
+// Copying from chats and notes can add quotes, backticks or invisible characters, so this
+// finds the prefix anywhere and keeps only the base64 characters after it
 function decodeSave(code) {
-  code = code.replace(/\s+/g, '');
-  if (!code.startsWith(SAVE_PREFIX)) return null;
+  const at = code.toUpperCase().indexOf(SAVE_PREFIX);
+  if (at < 0) return null;
+  code = code.slice(at + SAVE_PREFIX.length).replace(/[^A-Za-z0-9+/=]/g, '');
   try {
-    const bin = atob(code.slice(SAVE_PREFIX.length));
+    const bin = atob(code);
     const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0))));
     if (!data || typeof data !== 'object' || Array.isArray(data)) return null;
     const keys = Object.keys(data);
@@ -3829,6 +3835,12 @@ async function copySave() {
 
 $('saveBtn').onclick = openSave;
 $('saveCopy').onclick = copySave;
+// Once the keyboard is up, scroll the paste box into the part of the screen still showing
+$('saveIn').addEventListener('focus', () => {
+  $('saveBox').classList.add('typing');
+  setTimeout(() => $('saveIn').scrollIntoView({ block: 'start', behavior: 'smooth' }), 300);
+});
+$('saveIn').addEventListener('blur', () => $('saveBox').classList.remove('typing'));
 $('saveLoad').onclick = importSave;
 $('saveClose').onclick = () => $('saveBox').classList.add('hidden');
 $('saveOut').addEventListener('focus', e => e.target.select());
