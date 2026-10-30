@@ -104,19 +104,215 @@
   .link { background: none; color: var(--muted); text-decoration: underline; min-width: 0; padding: 4px; font-weight: 400; font-size: 13px; }
   .link:hover:not(:disabled) { background: none; color: var(--text); }
   .hidden { display: none !important; }
+
+  /* Calendar */
+  .calendar { background: rgba(0,0,0,.25); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
+  .cal-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+  .cal-month { font-weight: 700; color: var(--gold); white-space: nowrap; }
+  #calRent { text-align: right; color: var(--muted); }
+  #calRent.short { color: #ff8a8a; font-weight: 600; }
+  .cal-bar { height: 8px; border-radius: 4px; background: rgba(0,0,0,.35); margin: 8px 0 6px; overflow: hidden; }
+  .cal-fill { height: 100%; width: 0; background: var(--gold); border-radius: 4px; transition: width .4s; }
+  .cal-fill.late { background: var(--red); }
+  .cal-note { font-size: 12px; color: var(--muted); text-align: center; }
+
+  .modal {
+    position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.65);
+    display: grid; place-items: center; padding: 16px;
+  }
+  .modal-box {
+    background: var(--felt-dark); border: 2px solid var(--gold); border-radius: 14px;
+    padding: 22px 20px; max-width: 360px; width: 100%; text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,.6);
+  }
+  .modal-icon { font-size: 44px; line-height: 1; }
+  .modal-box h2 { margin: 10px 0 6px; color: var(--gold); }
+  .modal-box p { margin: 0 0 18px; color: var(--muted); line-height: 1.45; }
+  .modal.bad .modal-box { border-color: var(--red); }
+  .modal.bad h2 { color: #ff8a8a; }
+
+  /* Map */
+  .map { background: rgba(0,0,0,.25); border-radius: 12px; padding: 12px 16px 14px; margin-bottom: 20px; }
+  .map-area { position: relative; height: 96px; }
+  .road {
+    position: absolute; left: 10%; right: 11%; top: 58px; height: 10px; border-radius: 5px;
+    background: #3a3a3a; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .road::after {
+    content: ''; position: absolute; left: 8px; right: 8px; top: 4px;
+    border-top: 2px dashed rgba(245,197,66,.7);
+  }
+  .loc {
+    position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column;
+    align-items: center; gap: 2px; background: none; min-width: 0; padding: 0; font-weight: 600;
+    font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
+  }
+  .loc:hover:not(:disabled) { background: none; color: var(--text); }
+  .loc:disabled { opacity: 1; cursor: default; }
+  .loc .icon {
+    font-size: 26px; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+    background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.2);
+  }
+  .loc.here { color: var(--gold); }
+  .loc.here .icon { border-color: var(--gold); box-shadow: 0 0 12px rgba(245,197,66,.5); }
+  .loc[data-loc=home] { left: 10%; }
+  .loc[data-loc=casino] { left: 37%; }
+  .loc[data-loc=store] { left: 63%; }
+  .loc[data-loc=burger] { left: 89%; }
+  .loc .name { margin-top: 26px; white-space: nowrap; }
+  .bus {
+    position: absolute; left: 37%; top: 46px; font-size: 24px; line-height: 1; pointer-events: none;
+    transform: translateX(-50%); transition: left 1.2s ease-in-out;
+  }
+  .bus.right { transform: translateX(-50%) scaleX(-1); }
+  .loc:not(:disabled) .icon { animation: beckon 1.6s ease-in-out infinite; }
+  .loc:hover:not(:disabled) .icon { border-color: #fff; }
+  @keyframes beckon { 50% { transform: scale(1.1); } }
+  .map-hint { text-align: center; color: var(--muted); font-size: 13px; margin-top: 8px; }
+
+  /* Burger joint */
+  .kitchen { position: relative; width: 240px; height: 240px; margin: 4px auto 14px; touch-action: manipulation; cursor: pointer; }
+  .grill {
+    position: absolute; inset: 34px; border-radius: 50%;
+    background: repeating-linear-gradient(90deg, #2b2b2b 0 10px, #4a4a4a 10px 14px);
+    box-shadow: inset 0 0 18px rgba(0,0,0,.8), 0 0 0 6px #1d1d1d;
+  }
+  .patty {
+    position: absolute; left: 50%; top: 50%; width: 96px; height: 96px; margin: -48px 0 0 -48px;
+    border-radius: 50%; background: radial-gradient(circle at 40% 35%, #d99a8a, #b4685a);
+    box-shadow: 0 4px 10px rgba(0,0,0,.5); transition: background .4s;
+  }
+  .patty.cooking { background: radial-gradient(circle at 40% 35%, #b5714f, #8a4b2c); }
+  .patty.done {
+    background:
+      repeating-linear-gradient(135deg, transparent 0 14px, rgba(30,15,5,.55) 14px 18px),
+      radial-gradient(circle at 40% 35%, #8a4b2c, #5e311a);
+  }
+  .patty.burnt { background: radial-gradient(circle at 40% 35%, #3a3a3a, #111); }
+  .patty.flip { animation: pattyFlip .5s ease; }
+  @keyframes pattyFlip {
+    0% { transform: translateY(0) rotateX(0); }
+    50% { transform: translateY(-40px) rotateX(180deg); }
+    100% { transform: translateY(0) rotateX(360deg); }
+  }
+  .smoke { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 34px; pointer-events: none; opacity: 0; }
+  .smoke.show { animation: smoke 1s ease-out; }
+  @keyframes smoke { from { opacity: 1; transform: translate(-50%, -50%); } to { opacity: 0; transform: translate(-50%, -110%); } }
+  #dial { position: absolute; inset: 0; width: 240px; height: 240px; }
+  .shift-info { text-align: center; color: var(--muted); font-size: 13px; margin-top: 12px; }
+  .career { background: rgba(0,0,0,.2); border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; }
+  .flappy {
+    display: block; width: 100%; max-width: 300px; aspect-ratio: 300 / 360; margin: 0 auto 12px;
+    border-radius: 10px; touch-action: manipulation; cursor: pointer;
+  }
+  .apps { list-style: none; margin: 12px 0 0; padding: 0; font-size: 13px; color: var(--muted); }
+  .apps:empty { display: none; }
+  .apps li { padding: 6px 0; border-top: 1px solid rgba(255,255,255,.08); }
+  .bag { margin-bottom: 12px; }
+  .bag:empty { display: none; }
+  .bag button { background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.2); font-size: 14px; padding: 8px 12px; }
+  .bag button.on { border-color: var(--gold); color: var(--gold); }
+  .bag-note { width: 100%; text-align: center; color: var(--muted); font-size: 13px; }
+
+  /* Store */
+  .items { display: flex; flex-direction: column; gap: 10px; }
+  .item {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center;
+    background: rgba(0,0,0,.25); border-radius: 10px; padding: 12px;
+  }
+  .item .icon { font-size: 34px; }
+  .item .name { font-weight: 700; }
+  .item .price { color: var(--gold); font-weight: 700; margin-left: 6px; }
+  .item .desc { font-size: 13px; color: var(--muted); margin-top: 2px; line-height: 1.35; }
+  .item .owned { font-size: 12px; color: var(--text); margin-top: 4px; }
+  .item button { min-width: 70px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>RIDE THE BUS</h1>
-  <p class="sub">Guess 4 cards in a row. Cash out any time — or ride it all the way for 20×.</p>
+  <p class="sub" id="sub"></p>
 
   <div class="stats">
     <div class="stat"><div class="label">Bankroll</div><div class="value" id="bank">$0</div></div>
-    <div class="stat"><div class="label">On the line</div><div class="value" id="pot">—</div></div>
+    <div class="stat"><div class="label" id="potLabel">On the line</div><div class="value" id="pot">—</div></div>
     <div class="stat hs"><div class="label">High score</div><div class="value" id="high">$0</div></div>
   </div>
 
+  <div class="calendar">
+    <div class="cal-top">
+      <span class="cal-month" id="calMonth"></span>
+      <span id="calRent"></span>
+    </div>
+    <div class="cal-bar"><div class="cal-fill" id="calFill"></div></div>
+    <div class="cal-note">A hand takes 1 day, a shift takes 3. Rent is due at the end of each 30-day month.</div>
+  </div>
+
+  <div class="modal hidden" id="modal">
+    <div class="modal-box">
+      <div class="modal-icon" id="modalIcon"></div>
+      <h2 id="modalTitle"></h2>
+      <p id="modalText"></p>
+      <button class="gold" id="modalBtn"></button>
+    </div>
+  </div>
+
+  <div class="map">
+    <div class="map-area">
+      <div class="road"></div>
+      <button class="loc" data-loc="home"><span class="icon">🏠</span><span class="name">Home</span></button>
+      <button class="loc" data-loc="casino"><span class="icon">🎰</span><span class="name">Casino</span></button>
+      <button class="loc" data-loc="store"><span class="icon">🏪</span><span class="name">Store</span></button>
+      <button class="loc" data-loc="burger"><span class="icon">🍔</span><span class="name">Burger Joint</span></button>
+      <div class="bus" id="bus">🚌</div>
+    </div>
+    <div class="map-hint" id="mapHint"></div>
+  </div>
+
+  <!-- Burger joint -->
+  <div id="burgerView" class="hidden">
+    <div class="msg" id="bmsg"></div>
+    <div class="panel">
+      <div class="career"></div>
+      <div class="question" id="bq"></div>
+      <div class="kitchen" id="kitchen">
+        <div class="grill"></div>
+        <div class="patty" id="patty"></div>
+        <div class="smoke" id="smoke">💨</div>
+        <canvas id="dial" width="240" height="240"></canvas>
+      </div>
+      <div class="row bag" id="bag"></div>
+      <div class="row">
+        <button class="gold" id="shift">Start shift</button>
+        <button id="flip">Flip! (Space)</button>
+      </div>
+      <div class="shift-info" id="shiftInfo"></div>
+    </div>
+  </div>
+
+  <!-- Home -->
+  <div id="homeView" class="hidden">
+    <div class="msg" id="hmsg"></div>
+    <div class="panel">
+      <div class="career"></div>
+      <div class="question" id="hq"></div>
+      <canvas id="flappy" class="flappy hidden" width="300" height="360"></canvas>
+      <div class="row"><button class="gold" id="apply">📨 Apply for a job</button></div>
+      <div class="shift-info" id="homeInfo"></div>
+      <ul class="apps" id="apps"></ul>
+    </div>
+  </div>
+
+  <!-- Store -->
+  <div id="storeView" class="hidden">
+    <div class="msg" id="smsg"></div>
+    <div class="panel">
+      <div class="question">Boosts for your next Burger Joint shift (one per shift)</div>
+      <div class="items" id="items"></div>
+    </div>
+  </div>
+
+  <div id="casinoView">
   <div class="cards" id="cards"></div>
   <div class="msg" id="msg"></div>
 
@@ -125,10 +321,13 @@
     <div id="betPhase" class="wager">
       <div class="question">Place your wager</div>
       <div class="wager-input">
-        <button class="small" data-adj="half">½</button>
         <input id="wager" type="number" min="1" step="1">
-        <button class="small" data-adj="double">2×</button>
-        <button class="small" data-adj="max">Max</button>
+      </div>
+      <div class="row">
+        <button class="small" data-frac="0.1">1/10</button>
+        <button class="small" data-frac="0.2">1/5</button>
+        <button class="small" data-frac="0.5">1/2</button>
+        <button class="small" data-frac="1">All in</button>
       </div>
       <input id="slider" type="range" min="1">
       <button class="gold" id="deal">Deal</button>
@@ -145,16 +344,25 @@
 
     <!-- Broke -->
     <div id="brokePhase" class="hidden wager">
-      <div class="question">You're broke. The bus has left the station.</div>
-      <button class="gold" id="restart">Start over with $100</button>
+      <div class="question" id="brokeText"></div>
+      <button class="gold" id="goWork">🚌 Ride to the Burger Joint</button>
     </div>
   </div>
+  </div>
 
-  <div class="footer"><button class="link" id="resetHigh">Reset high score</button></div>
+  <div class="footer">
+    <button class="link" id="startOver">Start over</button>
+    <button class="link" id="resetHigh">Reset high score</button>
+  </div>
 </div>
 
 <script>
 const START_MONEY = 100;
+const DAYS_PER_MONTH = 30;
+const DAYS_PER_HAND = 1;    // 30 hands fill a month
+const DAYS_PER_SHIFT = 3;   // 10 shifts fill a month
+const BASE_RENT = 200;
+const RENT_GROWTH = 1.1;
 const MULTS = [2, 3, 4, 20];
 const SUITS = [
   { s: '♥', name: 'hearts', color: 'red' },
@@ -174,11 +382,16 @@ function save(key, v) { try { localStorage.setItem(key, String(v)); } catch {} }
 
 let bank = load('rtb_bank', START_MONEY);
 let high = load('rtb_high', START_MONEY);
+let month = load('rtb_month', 1);
+let day = load('rtb_day', 0);   // days used so far this month, 0..DAYS_PER_MONTH
 let deck = [];
 let drawn = [];
 let wager = 0;
 let round = 0;     // 0..3 while playing
 let playing = false;
+let loc = 'casino';      // 'casino' | 'burger'
+let traveling = false;
+let travelTimer = null;
 
 function fmt(n) { return '$' + n.toLocaleString(); }
 
@@ -220,7 +433,15 @@ function renderCards(resultIdx = -1, won = null) {
 function renderStats() {
   $('bank').textContent = fmt(bank);
   $('high').textContent = fmt(high);
-  $('pot').textContent = playing && round > 0 ? fmt(wager * MULTS[round - 1]) : (playing ? fmt(wager) : '—');
+  if (loc === 'burger') {
+    $('potLabel').textContent = 'This shift';
+    $('pot').textContent = shift ? fmt(shift.earned) : '—';
+  } else {
+    $('potLabel').textContent = 'On the line';
+    $('pot').textContent = playing && round > 0 ? fmt(wager * MULTS[round - 1]) : (playing ? fmt(wager) : '—');
+  }
+  renderMap();
+  renderCalendar();
 }
 
 function setMsg(text, kind = '') {
@@ -301,7 +522,15 @@ function syncWagerControls() {
 
 function toBet() {
   playing = false;
-  if (bank < 1) { showPhase('broke'); renderStats(); return; }
+  if (bank < 1) {
+    $('brokeText').textContent = unemployed
+      ? "You're broke and out of a job. Go home and apply for work."
+      : "You're broke. Time to earn your bus fare flipping burgers.";
+    $('goWork').textContent = unemployed ? '🚌 Ride home' : '🚌 Ride to the Burger Joint';
+    showPhase('broke');
+    renderStats();
+    return;
+  }
   showPhase('bet');
   syncWagerControls();
   renderStats();
@@ -342,6 +571,7 @@ function guess(k) {
     renderCards(idx, false);
     updateHigh();
     toBet();
+    passTime(DAYS_PER_HAND);
     return;
   }
   round++;
@@ -353,6 +583,7 @@ function guess(k) {
     renderCards(idx, true);
     updateHigh();
     toBet();
+    passTime(DAYS_PER_HAND);
     return;
   }
   setMsg(`Correct! ${fmt(wager * MULTS[round - 1])} on the line.`, 'good');
@@ -370,30 +601,26 @@ function cashOut() {
   renderCards();
   updateHigh();
   toBet();
+  passTime(DAYS_PER_HAND);
 }
 
 // Wager controls
 $('wager').addEventListener('input', () => { $('slider').value = $('wager').value; });
 $('wager').addEventListener('change', syncWagerControls);
 $('slider').addEventListener('input', () => { $('wager').value = $('slider').value; });
-document.querySelectorAll('[data-adj]').forEach(b => b.addEventListener('click', () => {
-  const w = $('wager');
-  const cur = Number(w.value) || 1;
-  if (b.dataset.adj === 'half') w.value = Math.floor(cur / 2);
-  if (b.dataset.adj === 'double') w.value = cur * 2;
-  if (b.dataset.adj === 'max') w.value = bank;
+// Shortcuts are fractions of the whole bankroll
+document.querySelectorAll('[data-frac]').forEach(b => b.addEventListener('click', () => {
+  $('wager').value = Math.floor(bank * Number(b.dataset.frac));
   syncWagerControls();
 }));
 
 $('deal').onclick = deal;
 $('cashout').onclick = cashOut;
-$('restart').onclick = () => {
-  bank = START_MONEY;
-  save('rtb_bank', bank);
-  drawn = [];
-  setMsg('Fresh $100. Good luck.');
-  renderCards();
-  toBet();
+$('goWork').onclick = () => travel(unemployed ? 'home' : 'burger');
+$('startOver').onclick = () => {
+  if (playing || shift || applying) return alert('Finish what you\'re doing first.');
+  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no job, and an empty bag. Your high score is kept.`)) return;
+  restartGame();
 };
 $('resetHigh').onclick = () => {
   if (!confirm('Reset your high score?')) return;
@@ -402,9 +629,754 @@ $('resetHigh').onclick = () => {
   renderStats();
 };
 
+// ---------- Map ----------
+const PLACES = {
+  home: { name: 'Home', sub: 'Rest up, or job hunt if you lost your job.', x: 10 },
+  casino: { name: 'Casino', sub: 'Guess 4 cards in a row. Cash out any time — or ride it all the way for 20×.', x: 37 },
+  store: { name: 'Store', sub: 'Stock up on boosts before your next shift.', x: 63 },
+  burger: { name: 'Burger Joint', sub: 'Hit the skill check to flip each burger. Great flips pay the most.', x: 89 },
+};  // x = map position, % from the left
+
+function placeBus(dest) {
+  const bus = $('bus');
+  bus.classList.toggle('right', PLACES[dest].x > PLACES[loc].x);
+  bus.style.left = PLACES[dest].x + '%';
+}
+
+function renderMap() {
+  const busy = playing || !!shift || traveling || applying;
+  document.querySelectorAll('.loc').forEach(b => {
+    b.classList.toggle('here', b.dataset.loc === loc);
+    b.disabled = busy || b.dataset.loc === loc;
+  });
+  $('mapHint').textContent = traveling ? '🚌 On the road…'
+    : playing ? 'Finish your hand before leaving'
+    : shift ? 'Finish your shift before leaving'
+    : applying ? 'Finish your application first'
+    : 'Tap a location to travel';
+}
+
+function travel(dest) {
+  if (dest === loc || playing || shift || traveling || applying) return;
+  traveling = true;
+  flappy = null;   // a finished job application doesn't follow you around
+  placeBus(dest);
+  renderMap();
+  travelTimer = setTimeout(() => {
+    traveling = false;
+    loc = dest;
+    showLocation(true);
+  }, 1200);
+}
+
+function showLocation(arrived = false) {
+  $('casinoView').classList.toggle('hidden', loc !== 'casino');
+  $('burgerView').classList.toggle('hidden', loc !== 'burger');
+  $('storeView').classList.toggle('hidden', loc !== 'store');
+  $('homeView').classList.toggle('hidden', loc !== 'home');
+  $('sub').textContent = PLACES[loc].sub;
+  if (loc === 'casino') {
+    drawn = [];
+    setMsg(arrived && bank >= 1 ? `Welcome back. You've got ${fmt(bank)} to play with.` : '');
+    renderCards();
+    toBet();
+  } else if (loc === 'home') {
+    setHMsg('');
+    renderHome();
+    renderStats();
+  } else if (loc === 'store') {
+    setSMsg('');
+    renderStore();
+    renderStats();
+  } else {
+    setBMsg(bank < 1 ? 'Broke, huh? Grab a spatula.' : '');
+    renderBurgerIdle();
+    renderStats();
+  }
+}
+
+document.querySelectorAll('.loc').forEach(b => b.onclick = () => travel(b.dataset.loc));
+
+// ---------- Store ----------
+const ITEMS = {
+  cigs: {
+    icon: '🚬', name: 'Cigarettes', price: 20,
+    desc: 'Steadies your hands. The needle moves slower for 1 shift, so greats are easier.',
+  },
+  wagyu: {
+    icon: '🥩', name: 'Wagyu Burger', price: 50,
+    desc: 'Premium patties. Burgers pay double for 1 shift, but the skill check zones are smaller.',
+  },
+};
+
+function loadInv() {
+  try { return { cigs: 0, wagyu: 0, ...JSON.parse(localStorage.getItem('rtb_inv') || '{}') }; }
+  catch { return { cigs: 0, wagyu: 0 }; }
+}
+function saveInv() { try { localStorage.setItem('rtb_inv', JSON.stringify(inv)); } catch {} }
+
+let inv = loadInv();   // items owned, by key
+// The one owned item to use on the next shift (boosts can't be combined), or null
+let bring = Object.keys(ITEMS).find(k => inv[k] > 0) || null;
+
+function setSMsg(text, kind = '') {
+  const m = $('smsg');
+  m.textContent = text;
+  m.className = 'msg ' + kind;
+}
+
+function renderStore() {
+  const box = $('items');
+  box.innerHTML = '';
+  for (const [k, it] of Object.entries(ITEMS)) {
+    const row = document.createElement('div');
+    row.className = 'item';
+    row.innerHTML = `<div class="icon">${it.icon}</div>
+      <div><div><span class="name">${it.name}</span><span class="price">${fmt(it.price)}</span></div>
+      <div class="desc">${it.desc}</div><div class="owned">In your bag: ${inv[k]}</div></div>`;
+    const b = document.createElement('button');
+    b.className = 'gold';
+    b.textContent = 'Buy';
+    b.disabled = bank < it.price;
+    b.onclick = () => buy(k);
+    row.append(b);
+    box.append(row);
+  }
+}
+
+function buy(k) {
+  const it = ITEMS[k];
+  if (bank < it.price) return;
+  bank -= it.price;
+  save('rtb_bank', bank);
+  inv[k]++;
+  bring = k;
+  saveInv();
+  // Cash-register "ching": two quick high notes
+  beep(1568, 0.08, 'triangle', 0.08);
+  setTimeout(() => beep(2093, 0.25, 'triangle', 0.08), 70);
+  setSMsg(`Bought ${it.icon} ${it.name}. It's in your bag and picked for your next shift.`, 'good');
+  renderStore();
+  renderStats();
+}
+
+// ---------- Burger joint: skill-check minigame ----------
+const MAX_BURNT = 3;        // burning more than this ends the shift and costs XP
+const XP_MIN_FLIPS = 5;    // good or great flips needed in a shift to earn XP
+const XP_PENALTY = 15;
+// Rank is set by total XP; higher ranks cook more burgers per shift
+const RANKS = [
+  { name: 'Trainee', xp: 0, burgers: 6 },
+  { name: 'Line Cook', xp: 20, burgers: 8 },
+  { name: 'Grill Cook', xp: 50, burgers: 10 },
+  { name: 'Shift Lead', xp: 100, burgers: 12 },
+  { name: 'Kitchen Manager', xp: 175, burgers: 15 },
+];
+const PAY_GOOD = 5;
+const PAY_GREAT = 12;
+const CIGS_SLOWDOWN = 1.6;   // needle takes this much longer per turn
+const WAGYU_PAY = 2;
+const WAGYU_ZONE = 0.6;      // zones shrink to this fraction
+
+let shift = null;   // { burger, length, earned, streak, burnt, flipped, greats, boost }
+let xp = load('rtb_xp', 0);
+let unemployed = load('rtb_jobless', 1) === 1;   // new games start without a job
+let check = null;   // active skill check: { start, good, great, dur, t0 }
+let checkTimer = null;
+let audio = null;
+
+const dial = $('dial');
+const ctx = dial.getContext('2d');
+(function setupDial() {
+  const dpr = window.devicePixelRatio || 1;
+  dial.width = 240 * dpr;
+  dial.height = 240 * dpr;
+  ctx.scale(dpr, dpr);
+})();
+
+function setBMsg(text, kind = '') {
+  const m = $('bmsg');
+  m.textContent = text;
+  m.className = 'msg ' + kind;
+}
+
+function beep(freq, dur = 0.08, type = 'sine', vol = 0.15) {
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type = type;
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, audio.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + dur);
+    o.connect(g).connect(audio.destination);
+    o.start();
+    o.stop(audio.currentTime + dur);
+  } catch {}
+}
+
+// Fraction of a full turn (0 = 12 o'clock) to canvas angle
+const ang = f => -Math.PI / 2 + f * Math.PI * 2;
+
+function drawDial(needle = null, faded = false) {
+  const c = 120, r = 104;
+  ctx.clearRect(0, 0, 240, 240);
+  ctx.lineCap = 'butt';
+  ctx.globalAlpha = faded ? 0.35 : 1;
+  ctx.beginPath();
+  ctx.arc(c, c, r, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,.5)';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+  if (check) {
+    // Good zone: hollow outline, like DbD
+    ctx.beginPath();
+    ctx.arc(c, c, r, ang(check.start), ang(check.start + check.good));
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 14;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(c, c, r, ang(check.start + check.great) + 0.02, ang(check.start + check.good) - 0.02);
+    ctx.strokeStyle = '#1d1d1d';
+    ctx.lineWidth = 9;
+    ctx.stroke();
+    // Great zone: solid white at the start of the good zone
+    ctx.beginPath();
+    ctx.arc(c, c, r, ang(check.start), ang(check.start + check.great));
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 14;
+    ctx.stroke();
+  }
+  if (needle !== null) {
+    const a = ang(needle);
+    ctx.beginPath();
+    ctx.moveTo(c + Math.cos(a) * (r - 18), c + Math.sin(a) * (r - 18));
+    ctx.lineTo(c + Math.cos(a) * (r + 12), c + Math.sin(a) * (r + 12));
+    ctx.strokeStyle = '#ff3b3b';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function setPatty(state, flip = false) {
+  const p = $('patty');
+  p.className = 'patty' + (state ? ' ' + state : '');
+  if (flip) { void p.offsetWidth; p.classList.add('flip'); }
+}
+
+function rankIndex(x) {
+  let i = 0;
+  while (i + 1 < RANKS.length && x >= RANKS[i + 1].xp) i++;
+  return i;
+}
+function rankOf(x) { return RANKS[rankIndex(x)]; }
+function saveCareer() { save('rtb_xp', xp); save('rtb_jobless', unemployed ? 1 : 0); save('rtb_hoops', hoopsNeeded); }
+
+function renderCareer() {
+  const i = rankIndex(xp), r = RANKS[i], next = RANKS[i + 1];
+  let head, right, pct, note;
+  if (unemployed) {
+    head = '❌ Unemployed';
+    right = '';
+    pct = 0;
+    note = 'No job. Go Home and apply to get hired at the Burger Joint.';
+  } else {
+    head = `👨‍🍳 ${r.name}`;
+    right = next ? `XP ${xp} / ${next.xp}` : `XP ${xp} · top rank`;
+    pct = next ? (xp - r.xp) / (next.xp - r.xp) * 100 : 100;
+    note = `${r.burgers} burgers per shift` + (next ? ` · Next: ${next.name} (${next.burgers})` : '');
+  }
+  document.querySelectorAll('.career').forEach(el => {
+    el.innerHTML = `<div class="cal-top"><span class="cal-month">${head}</span><span>${right}</span></div>
+      <div class="cal-bar"><div class="cal-fill" style="width:${pct}%"></div></div>
+      <div class="cal-note">${note}</div>`;
+  });
+}
+
+// Apply XP for a finished shift. Returns a short result line; promotions,
+// demotions and firing also get a popup.
+function settleCareer(s) {
+  const before = rankIndex(xp);
+  let line;
+  if (s.burnt > MAX_BURNT) {
+    xp -= XP_PENALTY;
+    line = `−${XP_PENALTY} XP for burning ${s.burnt}.`;
+  } else if (s.flipped >= XP_MIN_FLIPS) {
+    const gained = s.flipped + s.greats;   // greats count double
+    xp += gained;
+    line = `+${gained} XP.`;
+  } else {
+    line = `No XP: only ${s.flipped} flipped (need ${XP_MIN_FLIPS}).`;
+  }
+  if (xp < 0) {
+    xp = 0;
+    unemployed = true;
+    const extra = EXTRA_HOOPS[0] + Math.floor(Math.random() * (EXTRA_HOOPS[1] - EXTRA_HOOPS[0] + 1));
+    hoopsNeeded += extra;
+    showModal('📋', "You're fired!",
+      `The manager has seen enough burnt burgers. Word gets around: you'll need to jump through ${hoopsNeeded} hoops (+${extra}) to get hired again.`,
+      'Head home', () => travel('home'), 'bad');
+  } else {
+    const after = rankIndex(xp);
+    if (after > before) {
+      showModal('⭐', 'Promoted!', `You're now a ${RANKS[after].name}. Shifts are ${RANKS[after].burgers} burgers long.`, 'Nice', () => {});
+    } else if (after < before) {
+      showModal('📉', 'Demoted', `You're back to ${RANKS[after].name}. Shifts are ${RANKS[after].burgers} burgers long.`, 'OK', () => {}, 'bad');
+    }
+  }
+  saveCareer();
+  return line;
+}
+
+function renderShiftInfo() {
+  $('shiftInfo').textContent = shift
+    ? `Burger ${Math.min(shift.burger, shift.length)}/${shift.length} · Flipped ${shift.flipped} · Burnt ${shift.burnt}/${MAX_BURNT}` + (shift.boost ? ` · ${ITEMS[shift.boost].icon}` : '')
+    : `Good flip ${fmt(PAY_GOOD)}, great flip ${fmt(PAY_GREAT)} + streak bonus. Flip ${XP_MIN_FLIPS}+ to earn XP. Burn more than ${MAX_BURNT} and you're sent home and lose XP.`;
+}
+
+// Pick which owned item to use on the next shift (only one at a time)
+function renderBag() {
+  const box = $('bag');
+  box.innerHTML = '';
+  if (shift || unemployed) return;
+  const owned = Object.keys(ITEMS).filter(k => inv[k] > 0);
+  if (bring && !inv[bring]) bring = null;
+  if (!owned.length) return;
+  for (const k of owned) {
+    const b = document.createElement('button');
+    b.classList.toggle('on', bring === k);
+    b.textContent = `${bring === k ? '●' : '○'} ${ITEMS[k].icon} ${ITEMS[k].name} (${inv[k]})`;
+    b.onclick = () => { bring = bring === k ? null : k; renderBag(); };
+    box.append(b);
+  }
+  const note = document.createElement('div');
+  note.className = 'bag-note';
+  note.textContent = 'Pick one boost per shift. It gets used up when you start.';
+  box.append(note);
+}
+
+function renderBurgerIdle() {
+  check = null;
+  drawDial(null, true);
+  if (!shift) setPatty('');
+  $('bq').textContent = unemployed ? "You don't work here. Go Home and apply for a job." : shift ? '' : 'Ready to work?';
+  $('shift').classList.toggle('hidden', !!shift || unemployed);
+  $('shift').textContent = 'Start shift';
+  $('flip').disabled = true;
+  renderShiftInfo();
+  renderBag();
+  renderCareer();
+}
+
+function startShift() {
+  if (shift || unemployed) return;
+  beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
+  const boost = bring && inv[bring] > 0 ? bring : null;
+  if (boost) { inv[boost]--; saveInv(); }
+  shift = { burger: 0, length: rankOf(xp).burgers, earned: 0, streak: 0, burnt: 0, flipped: 0, greats: 0, boost };
+  $('shift').classList.add('hidden');
+  renderBag();
+  setBMsg(boost ? `Clocked in with ${ITEMS[boost].icon} ${ITEMS[boost].name}.` : 'Clocked in. Watch the grill…');
+  renderStats();
+  nextBurger();
+}
+
+function nextBurger() {
+  shift.burger++;
+  check = null;
+  setPatty('');
+  drawDial(null, true);
+  $('bq').textContent = 'Sizzling… get ready';
+  $('flip').disabled = false;
+  renderShiftInfo();
+  // Random wait so the check can't be timed from the previous one
+  checkTimer = setTimeout(() => {
+    setPatty('cooking');
+    const s = shift.streak;
+    let good = Math.max(0.06, 0.13 - s * 0.01);
+    let dur = Math.max(700, 1150 - s * 50);
+    if (shift.boost === 'wagyu') good *= WAGYU_ZONE;
+    if (shift.boost === 'cigs') dur *= CIGS_SLOWDOWN;
+    check = {
+      start: 0.3 + Math.random() * 0.5,
+      good,
+      great: good * 0.3,
+      dur,
+      t0: performance.now(),
+    };
+    $('bq').textContent = 'FLIP IT!';
+    beep(880, 0.12, 'triangle', 0.2);
+    requestAnimationFrame(tick);
+  }, 700 + Math.random() * 1300);
+}
+
+function tick(now) {
+  if (!check) return;
+  const pos = (now - check.t0) / check.dur;
+  if (pos > check.start + check.good + 0.03) { resolve(pos, 'miss'); return; }
+  drawDial(pos);
+  requestAnimationFrame(tick);
+}
+
+function hit() {
+  if (!shift) return;
+  if (!check) {
+    // Pressing before the check appears doesn't count, same as DbD
+    return;
+  }
+  const pos = (performance.now() - check.t0) / check.dur;
+  const d = pos - check.start;
+  const result = d >= 0 && d < check.great ? 'great' : d >= 0 && d <= check.good ? 'good' : 'miss';
+  resolve(pos, result);
+}
+
+function resolve(pos, result) {
+  drawDial(pos);
+  check = null;
+  $('flip').disabled = true;
+  if (result === 'miss') {
+    shift.burnt++;
+    shift.streak = 0;
+    setPatty('burnt');
+    const s = $('smoke');
+    s.classList.remove('show'); void s.offsetWidth; s.classList.add('show');
+    beep(140, 0.3, 'sawtooth', 0.15);
+    setBMsg('Burnt it! 🔥', 'bad');
+  } else {
+    const pay = (result === 'great' ? PAY_GREAT + shift.streak * 2 : PAY_GOOD) * (shift.boost === 'wagyu' ? WAGYU_PAY : 1);
+    shift.streak++;
+    shift.flipped++;
+    if (result === 'great') shift.greats++;
+    shift.earned += pay;
+    bank += pay;
+    updateHigh();
+    setPatty('done', true);
+    beep(result === 'great' ? 1320 : 660, 0.12, 'sine', 0.18);
+    setBMsg(result === 'great' ? `Great flip! +${fmt(pay)}` : `Good flip. +${fmt(pay)}`, 'good');
+  }
+  $('bq').textContent = '';
+  renderShiftInfo();
+  renderStats();
+  checkTimer = setTimeout(() => {
+    if (shift.burnt > MAX_BURNT) endShift(`${shift.burnt} burnt! The manager sent you home with ${fmt(shift.earned)}.`, 'bad');
+    else if (shift.burger >= shift.length) endShift(`Shift over! You earned ${fmt(shift.earned)}.`, 'good');
+    else nextBurger();
+  }, 900);
+}
+
+function endShift(text, kind) {
+  clearTimeout(checkTimer);
+  const done = shift;
+  shift = null;
+  check = null;
+  setBMsg(`${text} ${settleCareer(done)}`, kind);
+  renderBurgerIdle();
+  if (!unemployed) {
+    $('bq').textContent = 'Work another shift, or ride back to the casino.';
+    $('shift').textContent = 'Work another shift';
+  }
+  renderStats();
+  passTime(DAYS_PER_SHIFT);
+}
+
+$('shift').onclick = startShift;
+$('flip').onclick = hit;
+$('kitchen').addEventListener('pointerdown', e => { e.preventDefault(); hit(); });
+document.addEventListener('keydown', e => {
+  if (modalOpen()) {
+    if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); $('modalBtn').click(); }
+    return;
+  }
+  if (e.code !== 'Space' || traveling) return;
+  if (loc === 'home' && unemployed) {
+    e.preventDefault();
+    if (e.repeat) return;
+    if (applying) flap(); else applyForJob();
+    return;
+  }
+  if (loc !== 'burger') return;
+  e.preventDefault();
+  if (e.repeat) return;
+  if (shift) hit(); else startShift();
+});
+
+// ---------- Home: job hunting (a flappy-bird run through hoops) ----------
+const START_HOOPS = 5;
+const EXTRA_HOOPS = [3, 5];   // each firing adds this many more (random, inclusive), and it stacks
+let hoopsNeeded = load('rtb_hoops', START_HOOPS);
+// Canvas size in CSS px, and physics in px and seconds
+const FL = { w: 300, h: 360, ground: 30, birdX: 80, r: 12, gravity: 1400, jump: 400, speed: 130, spacing: 175, gap: 112, post: 26 };
+const REJECTIONS = [
+  '"We\'ll keep your résumé on file."',
+  'No callback.',
+  '"Didn\'t you set our grill on fire?"',
+  'The manager laughed and hung up.',
+  '"We went with someone who can flip a burger."',
+  'Voicemail full.',
+  '"Try again next week."',
+];
+let apps = [];          // rejection lines since losing the job, newest first
+let applying = false;   // a run is in progress (blocks travel)
+let flappy = null;      // { state: 'ready'|'playing'|'won'|'crashed', y, vy, t, last, hoops: [{ x, gapY, passed }], score }
+
+const fcan = $('flappy');
+const fctx = fcan.getContext('2d');
+(function setupFlappy() {
+  const dpr = window.devicePixelRatio || 1;
+  fcan.width = FL.w * dpr;
+  fcan.height = FL.h * dpr;
+  fctx.scale(dpr, dpr);
+})();
+
+function setHMsg(text, kind = '') {
+  const m = $('hmsg');
+  m.textContent = text;
+  m.className = 'msg ' + kind;
+}
+
+function renderHome() {
+  renderCareer();
+  $('hq').textContent = unemployed
+    ? `No job. Jump through ${hoopsNeeded} hoops to get hired at the Burger Joint.`
+    : `Home sweet home. You've got a job at the Burger Joint as a ${rankOf(xp).name}.`;
+  const b = $('apply');
+  b.classList.toggle('hidden', !unemployed || applying);
+  b.textContent = apps.length ? '📨 Apply again' : '📨 Apply for a job';
+  fcan.classList.toggle('hidden', !unemployed || !flappy);
+  $('homeInfo').textContent = !unemployed ? ''
+    : applying ? 'Tap the game or press Space to flap.'
+    : 'Each application takes 1 day.';
+  $('apps').innerHTML = unemployed ? apps.map((t, i) => `<li>Application #${apps.length - i}: ${t}</li>`).join('') : '';
+}
+
+function spawnHoop(x) {
+  const prev = flappy.hoops[flappy.hoops.length - 1];
+  // Keep each hoop within reach of the last one
+  const min = Math.max(70, prev ? prev.gapY - 110 : 0);
+  const max = Math.min(FL.h - FL.ground - 70, prev ? prev.gapY + 110 : Infinity);
+  flappy.hoops.push({ x, gapY: min + Math.random() * (max - min), passed: false });
+}
+
+function applyForJob() {
+  if (!unemployed || applying) return;
+  beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
+  applying = true;
+  flappy = { state: 'ready', y: FL.h / 2 - 20, vy: 0, t: 0, last: performance.now(), hoops: [], score: 0 };
+  spawnHoop(FL.w - 40);   // first hoop starts in view
+  setHMsg('');
+  renderHome();
+  renderMap();
+  requestAnimationFrame(flappyLoop);
+}
+
+function flap() {
+  if (!flappy || !applying) return;
+  if (flappy.state === 'ready') flappy.state = 'playing';
+  if (flappy.state !== 'playing') return;
+  flappy.vy = -FL.jump;
+  beep(520, 0.05, 'square', 0.04);
+}
+
+function flappyLoop(now) {
+  const f = flappy;
+  if (!f || (f.state !== 'ready' && f.state !== 'playing')) return;
+  const dt = Math.max(0, Math.min(0.033, (now - f.last) / 1000));
+  f.last = now;
+  f.t += dt;
+  if (f.state === 'ready') {
+    f.y = FL.h / 2 - 20 + Math.sin(f.t * 4) * 6;   // bob until the first flap
+  } else {
+    f.vy += FL.gravity * dt;
+    f.y += f.vy * dt;
+    if (f.y < FL.r) { f.y = FL.r; f.vy = 0; }
+    for (const h of f.hoops) h.x -= FL.speed * dt;
+    const lastHoop = f.hoops[f.hoops.length - 1];
+    if (lastHoop.x < FL.w - FL.spacing) spawnHoop(lastHoop.x + FL.spacing);
+    f.hoops = f.hoops.filter(h => h.x > -FL.post);
+    for (const h of f.hoops) {
+      // Inside the hoop's column, the bird must be within the opening
+      if (Math.abs(h.x - FL.birdX) < FL.post / 2 + FL.r - 4) {
+        if (f.y - FL.r < h.gapY - FL.gap / 2 || f.y + FL.r > h.gapY + FL.gap / 2) return endApplication(false);
+      }
+      if (!h.passed && h.x < FL.birdX - FL.post / 2) {
+        h.passed = true;
+        f.score++;
+        beep(1046, 0.08, 'triangle', 0.12);
+        if (f.score >= hoopsNeeded) return endApplication(true);
+      }
+    }
+    if (f.y + FL.r > FL.h - FL.ground) { f.y = FL.h - FL.ground - FL.r; return endApplication(false); }
+  }
+  drawFlappy();
+  requestAnimationFrame(flappyLoop);
+}
+
+function drawFlappy() {
+  const f = flappy, c = fctx;
+  c.clearRect(0, 0, FL.w, FL.h);
+  const sky = c.createLinearGradient(0, 0, 0, FL.h);
+  sky.addColorStop(0, '#2c7a55');
+  sky.addColorStop(1, '#15503a');
+  c.fillStyle = sky;
+  c.fillRect(0, 0, FL.w, FL.h);
+  c.fillStyle = '#0a2e1d';
+  c.fillRect(0, FL.h - FL.ground, FL.w, FL.ground);
+  c.fillStyle = 'rgba(245,197,66,.6)';
+  c.fillRect(0, FL.h - FL.ground, FL.w, 2);
+  const ring = (h, from, to) => {
+    c.beginPath();
+    c.ellipse(h.x, h.gapY, 10, FL.gap / 2, 0, from, to);
+    c.strokeStyle = '#f5c542';
+    c.lineWidth = 6;
+    c.stroke();
+  };
+  for (const h of f.hoops) {
+    // Posts above and below the hoop
+    c.fillStyle = '#2f4a3c';
+    c.fillRect(h.x - FL.post / 2, 0, FL.post, h.gapY - FL.gap / 2);
+    c.fillRect(h.x - FL.post / 2, h.gapY + FL.gap / 2, FL.post, FL.h - FL.ground - h.gapY - FL.gap / 2);
+    ring(h, -Math.PI / 2, Math.PI / 2);   // back half, behind the bird
+  }
+  c.save();
+  c.translate(FL.birdX, f.y);
+  c.rotate(Math.max(-0.5, Math.min(1, f.vy / 700)));
+  c.font = '26px system-ui, sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText('📄', 0, 1);
+  c.restore();
+  for (const h of f.hoops) ring(h, Math.PI / 2, Math.PI * 1.5);   // front half, over the bird
+  c.fillStyle = '#fff';
+  c.font = 'bold 20px system-ui, sans-serif';
+  c.textAlign = 'center';
+  c.textBaseline = 'top';
+  c.fillText(`Hoops ${f.score}/${hoopsNeeded}`, FL.w / 2, 12);
+  const banner = f.state === 'ready' ? 'Tap or press Space to flap'
+    : f.state === 'won' ? 'Hired! 🎉'
+    : f.state === 'crashed' ? 'Crashed!' : '';
+  if (banner) {
+    c.fillStyle = 'rgba(0,0,0,.55)';
+    c.fillRect(20, FL.h / 2 + 30, FL.w - 40, 40);
+    c.fillStyle = f.state === 'crashed' ? '#ff8a8a' : '#f5c542';
+    c.font = 'bold 18px system-ui, sans-serif';
+    c.textBaseline = 'middle';
+    c.fillText(banner, FL.w / 2, FL.h / 2 + 50);
+  }
+}
+
+function endApplication(hired) {
+  const f = flappy;
+  f.state = hired ? 'won' : 'crashed';
+  drawFlappy();
+  applying = false;
+  if (hired) {
+    unemployed = false;
+    xp = 0;
+    apps = [];
+    saveCareer();
+    setHMsg(`You jumped through ${hoopsNeeded} hoops!`, 'good');
+    showModal('🎉', "You're hired!", 'The Burger Joint is taking you on as a Trainee.', 'Go to work', () => { flappy = null; travel('burger'); });
+  } else {
+    beep(140, 0.3, 'sawtooth', 0.15);
+    apps.unshift(`${REJECTIONS[Math.floor(Math.random() * REJECTIONS.length)]} (${f.score}/${hoopsNeeded} hoops)`);
+    setHMsg('Rejected. Try again.', 'bad');
+  }
+  renderHome();
+  passTime(1);
+}
+
+$('apply').onclick = applyForJob;
+fcan.addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
+
+// ---------- Calendar and rent ----------
+function rentFor(m) { return Math.round(BASE_RENT * RENT_GROWTH ** (m - 1)); }
+
+function renderCalendar() {
+  const rent = rentFor(month);
+  const left = Math.max(0, DAYS_PER_MONTH - day);
+  $('calMonth').textContent = `📅 Month ${month} · Day ${Math.min(day + 1, DAYS_PER_MONTH)}/${DAYS_PER_MONTH}`;
+  const r = $('calRent');
+  r.textContent = left ? `Rent ${fmt(rent)} in ${left} day${left === 1 ? '' : 's'}` : `Rent ${fmt(rent)} due now`;
+  r.classList.toggle('short', bank < rent);
+  const fill = $('calFill');
+  fill.style.width = (day / DAYS_PER_MONTH * 100) + '%';
+  fill.classList.toggle('late', bank < rent && left <= 6);
+}
+
+function saveCalendar() { save('rtb_month', month); save('rtb_day', day); }
+
+function passTime(days) {
+  day += days;
+  if (day >= DAYS_PER_MONTH) {
+    const rent = rentFor(month);
+    if (bank >= rent) {
+      bank -= rent;
+      month++;
+      day -= DAYS_PER_MONTH;
+      saveCalendar();
+      save('rtb_bank', bank);
+      showModal('🏠', `Month ${month - 1} is over`,
+        `You paid ${fmt(rent)} in rent and have ${fmt(bank)} left. Next month's rent is ${fmt(rentFor(month))}.`,
+        'Keep going', () => (loc === 'casino' ? toBet() : renderStats()));
+    } else {
+      const had = bank;
+      showModal('📦', 'Evicted!',
+        `Rent for month ${month} was ${fmt(rent)} and you only had ${fmt(had)}. You lose. Back to month 1 with ${fmt(START_MONEY)} and no job. Your high score is kept.`,
+        'Start over', restartGame, 'bad');
+    }
+  }
+  saveCalendar();
+  renderStats();
+}
+
+function restartGame() {
+  bank = START_MONEY;
+  month = 1;
+  day = 0;
+  save('rtb_bank', bank);
+  saveCalendar();
+  loc = 'casino';
+  inv = { cigs: 0, wagyu: 0 };
+  bring = null;
+  saveInv();
+  xp = 0;
+  unemployed = true;
+  hoopsNeeded = START_HOOPS;
+  apps = [];
+  saveCareer();
+  clearTimeout(travelTimer);
+  traveling = false;
+  $('bus').classList.remove('right');
+  $('bus').style.left = PLACES.casino.x + '%';
+  $('wager').value = Math.min(10, bank);
+  showLocation();
+  setMsg(`Month 1. You've got ${fmt(bank)} and no job. Rent is ${fmt(rentFor(1))} in ${DAYS_PER_MONTH} days.`);
+}
+
+function modalOpen() { return !$('modal').classList.contains('hidden'); }
+
+const modalQueue = [];   // popups wait their turn if one is already showing
+
+function showModal(icon, title, text, btn, onClose, kind = '') {
+  if (modalOpen()) { modalQueue.push([icon, title, text, btn, onClose, kind]); return; }
+  $('modalIcon').textContent = icon;
+  $('modalTitle').textContent = title;
+  $('modalText').textContent = text;
+  $('modalBtn').textContent = btn;
+  $('modal').className = 'modal ' + kind;
+  $('modalBtn').onclick = () => {
+    $('modal').classList.add('hidden');
+    onClose();
+    if (modalQueue.length) showModal(...modalQueue.shift());
+  };
+  $('modalBtn').focus();
+}
+
 $('wager').value = Math.min(10, Math.max(1, bank));
-renderCards();
-toBet();
+showLocation();
+// Page was closed with rent still due
+if (day >= DAYS_PER_MONTH) passTime(0);
 </script>
 </body>
 </html>
