@@ -273,7 +273,8 @@
   .item button { min-width: 70px; }
 
   /* Traffic: a crossing minigame shown over the page during some trips */
-  .modal.traffic { z-index: 9; }
+  /* The whole overlay takes taps (they steer the bus), so no zooming, scrolling or text selection on it */
+  .modal.traffic { z-index: 9; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
   .traffic .modal-box { padding: 14px 10px 12px; }
   .traffic .modal-box h2 { margin: 0 0 4px; }
   .traffic .modal-box p { margin: 0 0 10px; font-size: 14px; }
@@ -1904,6 +1905,15 @@ $('apply').onclick = () => applyForJob();
 fcan.addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
 // iOS only shows :active button presses when the page listens for touches
 document.addEventListener('touchstart', () => {}, { passive: true });
+// iOS Safari can still zoom on a fast double tap, even with touch-action set, when a tap lands just
+// off a game. Cancel the second touch of any quick pair, except on buttons and text boxes, which
+// need their click (their taps are already covered by touch-action: manipulation).
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => {
+  const now = e.timeStamp;
+  if (now - lastTouchEnd < 350 && e.cancelable && !e.target.closest('button, input, textarea, select, a, label')) e.preventDefault();
+  lastTouchEnd = now;
+}, { passive: false });
 
 // ---------- Bar: a hex drink-mixing puzzle job, and luck drinks ----------
 const BAR_APPLY_DRINKS = 3;        // drinks to serve in the job test
@@ -3334,13 +3344,15 @@ document.querySelectorAll('[data-move]').forEach(b => b.addEventListener('pointe
   e.preventDefault();
   hop(b.dataset.move);
 }));
-// Tapping the road hops toward the tap: sideways if it's more to the side than ahead or behind
-tcan.addEventListener('pointerdown', e => {
+// Tapping anywhere on the overlay (road or not) hops toward the tap, measured from the bus:
+// sideways if it's more to the side than ahead or behind
+$('traffic').addEventListener('pointerdown', e => {
+  if (e.target.closest('[data-move]')) return;   // the arrow buttons handle themselves
   e.preventDefault();
   if (!crossing) return;
   const r = tcan.getBoundingClientRect();
-  const x = (e.clientX - r.left) / r.width * TR.w - (crossing.col + 0.5) * TR.cell;
-  const y = (e.clientY - r.top) / r.height * TR.h - (crossing.row + 0.5) * TR.cell;
+  const x = e.clientX - (r.left + (crossing.col + 0.5) * TR.cell * r.width / TR.w);
+  const y = e.clientY - (r.top + (crossing.row + 0.5) * TR.cell * r.height / TR.h);
   hop(Math.abs(x) > Math.abs(y) ? (x < 0 ? 'left' : 'right') : (y < 0 ? 'up' : 'down'));
 });
 
