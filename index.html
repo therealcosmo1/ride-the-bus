@@ -320,6 +320,7 @@
   }
   .mcard.open { background: #fff; color: #111; }
   .mcard.done { background: #fff; opacity: .4; }
+  .mcard.hint { background: #fff; color: #111; box-shadow: 0 0 0 3px var(--gold), 0 0 12px var(--gold); }
 
   /* Save codes */
   /* Top-aligned and scrollable so the paste box can sit above a phone keyboard */
@@ -502,7 +503,7 @@
       <div class="intern hidden" id="officeBox">
         <div class="jobcard" id="officeCard"></div>
         <div class="memory hidden" id="memory"></div>
-        <div class="row"><button class="gold" id="workBtn"></button></div>
+        <div class="row"><button class="gold" id="workBtn"></button><button class="toggle hidden" id="hintBtn"></button></div>
         <div class="shift-info" id="officeInfo"></div>
       </div>
     </div>
@@ -1186,6 +1187,22 @@ function renderStore() {
   kb.onclick = buyClub;
   club.append(kb);
   box.append(club);
+  // Coffee: hints for the office memory game, sold once you've had an office job
+  if (coffeeOk) {
+    const cf = document.createElement('div');
+    cf.className = 'item';
+    cf.innerHTML = `<div class="icon">☕</div>
+      <div><div><span class="name">Coffee</span><span class="price">${fmt(COFFEE_PRICE)}</span></div>
+      <div class="desc">Sharpens you up at the office. During a shift, drink one to flash a matching pair (or the match for the card you just turned over). Used up when you drink it.</div>
+      <div class="owned">In your bag: ${coffee}</div></div>`;
+    const cb = document.createElement('button');
+    cb.className = 'gold';
+    cb.textContent = 'Buy';
+    cb.disabled = spendable() < COFFEE_PRICE;
+    cb.onclick = buyCoffee;
+    cf.append(cb);
+    box.append(cf);
+  }
   if (bf()) return renderPart(box);
   // Bouquet: saves your relationship from one breakup
   const fl = document.createElement('div');
@@ -1913,6 +1930,7 @@ function endApplication(hired) {
       officeJob = true;
       officeOffer = false;
       officeXp = 0;
+      coffeeOk = true;
       saveOffice();
       setHMsg(`You jumped through ${f.need} hoops!`, 'good');
       showModal('💼', "You're hired!", `The office is taking you on as ${aAn(OFFICE_RANKS[0].name)}. Work shifts from Home.`, 'Nice', () => { flappy = null; renderHome(); });
@@ -2623,7 +2641,12 @@ let officeJob = load('rtb_office', 0) === 1;
 let officeOffer = load('rtb_offer', 0) === 1;          // won an offer, still needs the interview
 let officeXp = load('rtb_offxp', 0);
 let officeHoops = load('rtb_offhoops', OFFICE_START_HOOPS);   // grows with each firing
-function saveOffice() { save('rtb_office', officeJob ? 1 : 0); save('rtb_offer', officeOffer ? 1 : 0); save('rtb_offxp', officeXp); save('rtb_offhoops', officeHoops); }
+// Coffee (Store, unlocked by your first office job): one use flashes a matching pair in the memory game
+const COFFEE_PRICE = 15;
+const HINT_MS = 900;   // how long a hinted pair stays face up
+let coffee = load('rtb_coffee', 0);
+let coffeeOk = load('rtb_coffeeok', 0) === 1 || officeJob;
+function saveOffice() { save('rtb_coffee', coffee); save('rtb_coffeeok', coffeeOk ? 1 : 0); save('rtb_office', officeJob ? 1 : 0); save('rtb_offer', officeOffer ? 1 : 0); save('rtb_offxp', officeXp); save('rtb_offhoops', officeHoops); }
 const officeRank = () => OFFICE_RANKS[rankIndex(officeXp, OFFICE_RANKS)];
 let slide = null;   // { tiles: [tile at each position, 8 = blank], moves, state: 'playing'|'won'|'lost' }
 let memo = null;    // { cards: [{ icon, open, done }], first, lock, misses, pairs, state: 'playing'|'done' }
@@ -2808,6 +2831,10 @@ function renderOffice() {
     `${fmt(r.pay)} a shift, −${fmt(OFFICE_MISS)} per mismatch` + (next ? ` · Next: ${next.name} (${fmt(next.pay)})` : '')
     + `. XP: ${OFFICE_XP_PERFECT} minus mismatches. Over ${OFFICE_BAD_MISSES} mismatches is a bad review (−${OFFICE_XP_PENALTY} XP); below 0 XP you're fired.`);
   const playing = memo && memo.state === 'playing';
+  const hb = $('hintBtn');
+  hb.classList.toggle('hidden', !playing || !coffeeOk);
+  hb.textContent = `☕ Hint (${coffee} left)`;
+  hb.disabled = !playing || !coffee || memo.lock;
   $('memory').classList.toggle('hidden', !memo);
   $('workBtn').classList.toggle('hidden', playing);
   $('workBtn').textContent = memo ? '💼 Work another shift' : '💼 Go to work';
@@ -2823,8 +2850,8 @@ function renderMemory() {
   box.innerHTML = '';
   memo.cards.forEach((c, i) => {
     const b = document.createElement('button');
-    b.className = 'mcard' + (c.open || c.done ? ' open' : '') + (c.done ? ' done' : '');
-    b.textContent = c.open || c.done ? c.icon : '';
+    b.className = 'mcard' + (c.open || c.done ? ' open' : '') + (c.done ? ' done' : '') + (c.hint ? ' hint' : '');
+    b.textContent = c.open || c.done || c.hint ? c.icon : '';
     b.addEventListener('pointerdown', e => { e.preventDefault(); flipCard(i); });
     box.append(b);
   });
@@ -2875,6 +2902,28 @@ function flipCard(i) {
     renderOffice();
   }, officeRank().flip);   // higher ranks give you less time to memorise
 }
+
+// Drink a coffee: flash the partner of the card you've turned over, or any unmatched pair
+function useHint() {
+  const m = memo;
+  if (!m || m.state !== 'playing' || m.lock || !coffee) return;
+  const left = m.cards.map((c, i) => i).filter(i => !m.cards[i].done);
+  const icon = m.first !== null ? m.cards[m.first].icon : m.cards[left[Math.floor(Math.random() * left.length)]].icon;
+  const pair = left.filter(i => m.cards[i].icon === icon && i !== m.first);
+  coffee--;
+  saveOffice();
+  m.lock = true;
+  pair.forEach(i => { m.cards[i].hint = true; });
+  beep(880, 0.08, 'sine', 0.08);
+  renderOffice();
+  setTimeout(() => {
+    pair.forEach(i => { m.cards[i].hint = false; });
+    if (memo !== m) return;
+    m.lock = false;
+    renderOffice();
+  }, HINT_MS);
+}
+$('hintBtn').onclick = useHint;
 
 // Drinking on the job: the cards you haven't matched swap places, so what you memorised is wrong
 function shuffleUnmatched(m) {
@@ -3005,6 +3054,18 @@ function throwHand(k) {
     $('mugDone').classList.remove('hidden');
     $('mugDone').focus();
   }
+  renderStats();
+}
+
+function buyCoffee() {
+  if (!coffeeOk || spendable() < COFFEE_PRICE) return;
+  bank -= COFFEE_PRICE;
+  save('rtb_bank', bank);
+  coffee++;
+  saveOffice();
+  ching();
+  setSMsg('☕ Bought a coffee. Drink it during an office shift for a hint.', 'good');
+  renderStore();
   renderStats();
 }
 
@@ -3929,7 +3990,6 @@ function importSave() {
   const data = decodeSave($('saveIn').value);
   if (!data) return setSaveMsg("That doesn't look like a save code.", 'bad');
   if (playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking()) return setSaveMsg('Finish what you\'re doing first.', 'bad');
-  if (!confirm('Load this save? Your current progress will be replaced.')) return;
   try {
     Object.keys(localStorage).filter(k => k.startsWith('rtb_')).forEach(k => localStorage.removeItem(k));
     for (const [k, v] of Object.entries(data)) localStorage.setItem(k, v);
@@ -4069,6 +4129,8 @@ function restartGame() {
   officeJob = officeOffer = false;
   officeXp = 0;
   officeHoops = OFFICE_START_HOOPS;
+  coffee = 0;
+  coffeeOk = false;
   saveOffice();
   slide = memo = null;
   partyOn = flirtOn = false;
