@@ -3838,7 +3838,7 @@ $('saveCopy').onclick = copySave;
 // Once the keyboard is up, scroll the paste box into the part of the screen still showing
 $('saveIn').addEventListener('focus', () => {
   $('saveBox').classList.add('typing');
-  setTimeout(() => $('saveIn').scrollIntoView({ block: 'start', behavior: 'smooth' }), 300);
+  setTimeout(() => { $('saveBox').scrollTop += $('saveIn').getBoundingClientRect().top - 12; }, 300);
 });
 $('saveIn').addEventListener('blur', () => $('saveBox').classList.remove('typing'));
 $('saveLoad').onclick = importSave;
