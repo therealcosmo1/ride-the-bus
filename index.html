@@ -143,7 +143,7 @@
   .map { background: rgba(0,0,0,.25); border-radius: 12px; padding: 12px 16px 14px; margin-bottom: 20px; }
   .map-area { position: relative; height: 108px; }
   .road {
-    position: absolute; left: 7%; right: 7%; top: 58px; height: 10px; border-radius: 5px;
+    position: absolute; left: 6%; right: 6%; top: 58px; height: 10px; border-radius: 5px;
     background: #3a3a3a; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
   }
   .road::after {
@@ -160,24 +160,25 @@
   /* Keep the centring when pressed; the generic button press nudge would replace it */
   .loc:active:not(:disabled) { transform: translateX(-50%) translateY(1px); }
   .loc .icon {
-    font-size: 22px; width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 19px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
     background: rgba(0,0,0,.3); border: 2px solid rgba(255,255,255,.2);
   }
   .loc.here { color: var(--gold); }
   .loc.here .icon { border-color: var(--gold); box-shadow: 0 0 12px rgba(245,197,66,.5); }
-  .loc[data-loc=home] { left: 7%; }
-  .loc[data-loc=gym] { left: 21%; }
-  .loc[data-loc=casino] { left: 36%; }
-  .loc[data-loc=bank] { left: 50%; }
-  .loc[data-loc=bar] { left: 64%; }
+  .loc[data-loc=home] { left: 6%; }
+  .loc[data-loc=uni] { left: 18.6%; }
+  .loc[data-loc=gym] { left: 31.1%; }
+  .loc[data-loc=casino] { left: 43.7%; }
+  .loc[data-loc=bank] { left: 56.3%; }
+  .loc[data-loc=bar] { left: 68.9%; }
   .loc .icon { position: relative; }
   .loc.locked .icon { filter: grayscale(1); opacity: .6; }
   .loc.locked .icon::after { content: '🔒'; position: absolute; right: -6px; bottom: -6px; font-size: 14px; }
-  .loc[data-loc=store] { left: 79%; }
-  .loc[data-loc=burger] { left: 93%; }
-  .loc .name { margin-top: 30px; max-width: 46px; text-align: center; line-height: 1.15; font-size: 10px; }
+  .loc[data-loc=store] { left: 81.4%; }
+  .loc[data-loc=burger] { left: 94%; }
+  .loc .name { margin-top: 36px; max-width: 40px; text-align: center; line-height: 1.15; font-size: 9px; letter-spacing: .3px; }
   .bus {
-    position: absolute; left: 36%; top: 46px; font-size: 24px; line-height: 1; pointer-events: none;
+    position: absolute; left: 43.7%; top: 46px; font-size: 24px; line-height: 1; pointer-events: none;
     transform: translateX(-50%); transition: left 1.2s ease-in-out;
   }
   .bus.right { transform: translateX(-50%) scaleX(-1); }
@@ -280,6 +281,29 @@
   .dpad { touch-action: none; }
   .dpad button { min-width: 58px; font-size: 20px; padding: 10px 0; -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
 
+  /* Bar drink mixing */
+  .mixboard {
+    display: block; width: 100%; max-width: 300px; margin: 0 auto 10px; border-radius: 10px;
+    touch-action: none; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  .recipe { text-align: center; margin-bottom: 10px; }
+  .recipe-name { font-weight: 700; color: var(--gold); margin-bottom: 6px; }
+  .need {
+    display: inline-block; margin: 2px; padding: 3px 8px; border-radius: 12px; font-size: 12px;
+    border: 2px solid; background: rgba(0,0,0,.3);
+  }
+  .need.done { opacity: .45; text-decoration: line-through; }
+
+  /* Muggings */
+  .modal.mug { z-index: 9; }
+  #mugThrows button { font-size: 30px; min-width: 70px; }
+  #mugResult { margin: 12px 0; min-height: 20px; font-weight: 600; }
+  #mugResult.good { color: var(--gold); }
+  #mugResult.bad { color: #ff8a8a; }
+  .odds { text-align: center; color: var(--gold); font-size: 13px; margin: -4px 0 10px; }
+  .odds:empty { display: none; }
+
   /* Achievements */
   .modal.ach { z-index: 9; }
   .ach-list { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
@@ -331,6 +355,21 @@
     </div>
   </div>
 
+  <div class="modal mug hidden" id="mugBox">
+    <div class="modal-box">
+      <div class="modal-icon">🔪</div>
+      <h2>Mugged!</h2>
+      <p id="mugText"></p>
+      <div class="row" id="mugThrows">
+        <button data-throw="rock" aria-label="Rock">✊</button>
+        <button data-throw="paper" aria-label="Paper">✋</button>
+        <button data-throw="scissors" aria-label="Scissors">✌️</button>
+      </div>
+      <div id="mugResult"></div>
+      <button class="gold hidden" id="mugDone">Continue</button>
+    </div>
+  </div>
+
   <div class="modal traffic hidden" id="traffic">
     <div class="modal-box">
       <h2>🚧 Traffic!</h2>
@@ -358,6 +397,7 @@
     <div class="map-area">
       <div class="road"></div>
       <button class="loc" data-loc="home"><span class="icon">🏠</span><span class="name">Home</span></button>
+      <button class="loc" data-loc="uni"><span class="icon">🎓</span><span class="name">Uni</span></button>
       <button class="loc" data-loc="gym"><span class="icon">🏋️</span><span class="name">Gym</span></button>
       <button class="loc" data-loc="casino"><span class="icon">🎰</span><span class="name">Casino</span></button>
       <button class="loc" data-loc="bank"><span class="icon">🏦</span><span class="name">Bank</span></button>
@@ -424,19 +464,41 @@
     <div class="panel">
       <div class="jobcard" id="barCard"></div>
       <div class="question" id="rq"></div>
-      <div class="simon" id="simon">
-        <button class="pad" data-pad="0">🍷</button>
-        <button class="pad" data-pad="1">🍸</button>
-        <button class="pad" data-pad="2">🍺</button>
-        <button class="pad" data-pad="3">🥃</button>
+      <div id="mixWrap" class="hidden">
+        <div class="recipe" id="mixRecipe"></div>
+        <canvas id="mix" class="mixboard"></canvas>
+        <div class="row dpad">
+          <button data-mix="left" aria-label="Left">◀</button>
+          <button data-mix="rot" aria-label="Rotate">⟳</button>
+          <button data-mix="drop" aria-label="Drop">▼</button>
+          <button data-mix="right" aria-label="Right">▶</button>
+        </div>
       </div>
-      <div class="shift-info" id="simonInfo"></div>
+      <div class="shift-info" id="mixInfo"></div>
       <div class="row" style="margin-top: 12px"><button class="gold" id="barBtn"></button></div>
     </div>
     <div class="panel" style="margin-top: 12px">
       <div class="question">Drinks: luck for your next few casino hands (one at a time)</div>
       <div class="drink-status" id="drinkStatus"></div>
       <div class="items" id="drinks"></div>
+    </div>
+  </div>
+
+  <!-- University -->
+  <div id="uniView" class="hidden">
+    <div class="msg" id="umsg"></div>
+    <div class="panel">
+      <div class="jobcard" id="uniCard"></div>
+      <div class="row bag" id="majors"></div>
+      <div class="question" id="uq"></div>
+      <div class="simon" id="simon">
+        <button class="pad" data-pad="0">📕</button>
+        <button class="pad" data-pad="1">📘</button>
+        <button class="pad" data-pad="2">📗</button>
+        <button class="pad" data-pad="3">📙</button>
+      </div>
+      <div class="row"><button class="gold" id="study"></button></div>
+      <div class="shift-info" id="uniInfo"></div>
     </div>
   </div>
 
@@ -475,7 +537,7 @@
   <div id="storeView" class="hidden">
     <div class="msg" id="smsg"></div>
     <div class="panel">
-      <div class="question">Boosts for your next Burger Joint shift, and ID for the Bar</div>
+      <div class="question">Shift boosts, ID for the Bar, a credit card and protection</div>
       <div class="items" id="items"></div>
     </div>
   </div>
@@ -505,6 +567,7 @@
     <!-- Guessing phase -->
     <div id="playPhase" class="hidden">
       <div class="question" id="question"></div>
+      <div class="odds" id="odds"></div>
       <div class="row" id="choices"></div>
       <div class="cashout">
         <button class="gold" id="cashout">Cash out</button>
@@ -682,9 +745,20 @@ function renderQuestion() {
     b.onclick = () => guess(o.k);
     box.append(b);
   }
+  renderOdds();
   const cash = $('cashout');
   cash.disabled = round === 0;
   cash.textContent = round === 0 ? 'Cash out' : `Cash out ${fmt(wager * MULTS[round - 1])}`;
+}
+
+// Statistics degree: the chance of each answer, counted from the cards left in the deck
+function renderOdds() {
+  if (!hasDegree('stats') || !playing) { $('odds').textContent = ''; return; }
+  const Q = QUESTIONS[round], tie = c => Q.tie && Q.tie(c), n = deck.length;
+  const parts = Q.opts.map(o => `${o.t} ${pct(deck.filter(c => !tie(c) && Q.check(o.k, c)).length / n)}`);
+  const ties = deck.filter(tie).length;
+  if (ties) parts.push(`Push ${pct(ties / n)}`);
+  $('odds').textContent = '📊 ' + parts.join(' · ');
 }
 
 function syncWagerControls() {
@@ -750,6 +824,7 @@ function guess(k) {
   if (tie && tie(c)) {
     setMsg(`Same rank (${label(c)}) — it's a push. Guess again for a new card.`);
     renderCards(idx, null);
+    renderOdds();
     return;
   }
   const won = QUESTIONS[round].check(k, c);
@@ -822,8 +897,8 @@ $('cashout').onclick = cashOut;
 function brokeDest() { return savings >= 1 ? 'bank' : !unemployed ? 'burger' : barJob && hasId ? 'bar' : 'home'; }
 $('goWork').onclick = () => travel(brokeDest());
 $('startOver').onclick = () => {
-  if (playing || shift || applying || simon || working || traveling) return alert('Finish what you\'re doing first.');
-  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
+  if (playing || shift || applying || simon || mix || working || traveling) return alert('Finish what you\'re doing first.');
+  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, no degrees, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
   restartGame();
 };
 $('resetHigh').onclick = () => {
@@ -835,13 +910,14 @@ $('resetHigh').onclick = () => {
 
 // ---------- Map ----------
 const PLACES = {
-  home: { name: 'Home', sub: 'Rest up, or job hunt if you lost your job.', x: 7 },
-  gym: { name: 'Gym', sub: 'Work out to kick the smoking habit. Pay the monthly fee on your first visit each month.', x: 21 },
-  casino: { name: 'Casino', sub: 'Guess 4 cards in a row. Cash out any time — or ride it all the way for 20×.', x: 36 },
-  bank: { name: 'Bank', sub: 'Save money for daily interest, or borrow against your credit score.', x: 50 },
-  bar: { name: 'Bar', sub: 'Tend bar by remembering orders, or buy a drink for some casino luck.', x: 64 },
-  store: { name: 'Store', sub: 'Stock up on boosts before your next shift.', x: 79 },
-  burger: { name: 'Burger Joint', sub: 'Hit the skill check to flip each burger. Great flips pay the most.', x: 93 },
+  home: { name: 'Home', sub: 'Rest up, or job hunt if you lost your job.', x: 6 },
+  uni: { name: 'University', sub: 'Study for degrees that make life easier. Tuition is due every session.', x: 18.6 },
+  gym: { name: 'Gym', sub: 'Work out to kick the smoking habit. Pay the monthly fee on your first visit each month.', x: 31.1 },
+  casino: { name: 'Casino', sub: 'Guess 4 cards in a row. Cash out any time — or ride it all the way for 20×.', x: 43.7 },
+  bank: { name: 'Bank', sub: 'Save money for daily interest, or borrow against your credit score.', x: 56.3 },
+  bar: { name: 'Bar', sub: 'Tend bar by mixing drinks, or buy one for some casino luck.', x: 68.9 },
+  store: { name: 'Store', sub: 'Stock up on boosts before your next shift.', x: 81.4 },
+  burger: { name: 'Burger Joint', sub: 'Hit the skill check to flip each burger. Great flips pay the most.', x: 94 },
 };  // x = map position, % from the left
 
 function placeBus(dest, x = PLACES[dest].x) {
@@ -851,17 +927,18 @@ function placeBus(dest, x = PLACES[dest].x) {
 }
 
 function renderMap() {
-  const busy = playing || !!shift || traveling || applying || !!simon || working;
+  const busy = playing || !!shift || traveling || applying || !!simon || !!mix || working;
   document.querySelectorAll('.loc').forEach(b => {
     b.classList.toggle('here', b.dataset.loc === loc);
     b.disabled = busy || b.dataset.loc === loc;
     b.classList.toggle('locked', b.dataset.loc === 'bar' && !hasId);
   });
   $('mapHint').textContent = crossing ? '🚧 Stuck in traffic!'
+    : mug ? '🔪 Getting mugged!'
     : traveling ? '🚌 On the road…'
     : playing ? 'Finish your hand before leaving'
     : shift ? 'Finish your shift before leaving'
-    : applying || simon || working ? 'Finish what you\'re doing first'
+    : applying || simon || mix || working ? 'Finish what you\'re doing first'
     : 'Tap a location to travel' + (trafficChance() ? ` · 🚧 ${pct(trafficChance())} traffic chance per stop` : '');
 }
 
@@ -871,7 +948,7 @@ function travel(dest) {
     beep(140, 0.15, 'sawtooth', 0.08);
     return;
   }
-  if (dest === loc || playing || shift || traveling || applying || simon || working) return;
+  if (dest === loc || playing || shift || traveling || applying || simon || mix || working) return;
   traveling = true;
   flappy = null;   // a finished job application doesn't follow you around
   run = null;      // nor does a finished workout
@@ -887,15 +964,18 @@ function drive(dest) {
   placeBus(dest);
   renderMap();
   travelTimer = setTimeout(() => {
-    traveling = false;
     loc = dest;
-    showLocation(true);
+    const arrive = () => { traveling = false; showLocation(true); };
+    // Carrying a lot of cash to the Bank or Bar can get you mugged on the way in
+    if ((dest === 'bank' || dest === 'bar') && Math.random() < muggingChance()) return startMugging(arrive);
+    arrive();
   }, 1200);
 }
 
 function showLocation(arrived = false) {
   $('casinoView').classList.toggle('hidden', loc !== 'casino');
   $('bankView').classList.toggle('hidden', loc !== 'bank');
+  $('uniView').classList.toggle('hidden', loc !== 'uni');
   $('burgerView').classList.toggle('hidden', loc !== 'burger');
   $('storeView').classList.toggle('hidden', loc !== 'store');
   $('barView').classList.toggle('hidden', loc !== 'bar');
@@ -918,6 +998,10 @@ function showLocation(arrived = false) {
   } else if (loc === 'bar') {
     setRMsg('');
     renderBar();
+    renderStats();
+  } else if (loc === 'uni') {
+    setUMsg('');
+    renderUni();
     renderStats();
   } else if (loc === 'bank') {
     setKMsg('');
@@ -1000,7 +1084,7 @@ function renderStore() {
   card.className = 'item';
   card.innerHTML = `<div class="icon">💳</div>
     <div><div><span class="name">Credit Card</span><span class="price">${fmt(CARD_PRICE)}</span></div>
-    <div class="desc">Spend down to ${fmt(-CARD_LIMITS[0])} anywhere: bets, shops, the gym, even rent. ${ratePct(CARD_RATE)} interest a day while you're below zero. Upgrade the limit at the Bank.</div>
+    <div class="desc">Spend down to ${fmt(-CARD_LIMITS[0])} anywhere: bets, shops, the gym, even rent. ${ratePct(cardRate())} interest a day while you're below zero. Upgrade the limit at the Bank.</div>
     <div class="owned">${cardLimit ? `In your wallet ✓ (limit ${fmt(cardLimit)})` : 'Pay with cash.'}</div></div>`;
   const cb = document.createElement('button');
   cb.className = 'gold';
@@ -1009,6 +1093,20 @@ function renderStore() {
   cb.onclick = buyCard;
   card.append(cb);
   box.append(card);
+  // Billy club: a second throw when a mugger beats you
+  const club = document.createElement('div');
+  club.className = 'item';
+  club.innerHTML = `<div class="icon">🏏</div>
+    <div><div><span class="name">Billy Club</span><span class="price">${fmt(CLUB_PRICE)}</span></div>
+    <div class="desc">Lose to a mugger and you get another throw. Used up when you swing it.</div>
+    <div class="owned">Owned: ${clubs}</div></div>`;
+  const kb = document.createElement('button');
+  kb.className = 'gold';
+  kb.textContent = 'Buy';
+  kb.disabled = spendable() < CLUB_PRICE;
+  kb.onclick = buyClub;
+  club.append(kb);
+  box.append(club);
 }
 
 function buyCard() {
@@ -1078,7 +1176,8 @@ const WITHDRAWAL_MAX = 0.5;      // needle speed-up at its worst (+50%)
 const WITHDRAWAL_CIGS = 20;      // cigarettes smoked to reach it; it builds up evenly (2.5% each)
 let cigsSmoked = load('rtb_cigs', 0);
 const cigDudChance = () => Math.min(CIG_TOLERANCE_MAX, cigsSmoked * CIG_TOLERANCE);
-const withdrawal = () => Math.min(WITHDRAWAL_MAX, cigsSmoked / WITHDRAWAL_CIGS * WITHDRAWAL_MAX);
+// Medicine halves it
+const withdrawal = () => Math.min(WITHDRAWAL_MAX, cigsSmoked / WITHDRAWAL_CIGS * WITHDRAWAL_MAX) * (hasDegree('medical') ? 0.5 : 1);
 const pct = x => Math.round(x * 100) + '%';
 const WAGYU_PAY = 2;
 const WAGYU_ZONE = 0.6;      // zones shrink to this fraction
@@ -1305,7 +1404,9 @@ function startShift() {
   } else if (cigsSmoked > 0) {
     shaky = withdrawal();
   }
-  shift = { burger: 0, length: rankOf(xp).burgers, earned: 0, streak: 0, burnt: 0, flipped: 0, greats: 0, boosts, cigWorked, shaky };
+  // maxed: full withdrawal for the Iron achievements (judged by the cigarette count, so Medicine doesn't block them)
+  const maxed = !boosts.cigs && cigsSmoked >= WITHDRAWAL_CIGS;
+  shift = { burger: 0, length: rankOf(xp).burgers, earned: 0, streak: 0, burnt: 0, flipped: 0, greats: 0, boosts, cigWorked, shaky, maxed };
   $('shift').classList.add('hidden');
   renderBag();
   const parts = [];
@@ -1411,7 +1512,7 @@ function endShift(text, kind) {
   check = null;
   setBMsg(`${text} ${settleCareer(done)}`, kind);
   // Iron achievements: a whole shift at max withdrawal without burning a patty (burning none means it wasn't cut short)
-  if (done.burnt === 0 && done.shaky >= WITHDRAWAL_MAX) {
+  if (done.burnt === 0 && done.maxed) {
     unlock('foal');
     if (done.length === RANKS[RANKS.length - 1].burgers) {
       unlock('horse');
@@ -1448,7 +1549,19 @@ document.addEventListener('keydown', e => {
     if (dir) { e.preventDefault(); if (!e.repeat) hop(dir); }
     return;
   }
-  if (loc === 'bar' && simon && /^Digit[1-4]$/.test(e.code)) {
+  if (mug) {
+    const k = { Digit1: 'rock', KeyR: 'rock', Digit2: 'paper', KeyP: 'paper', Digit3: 'scissors', KeyS: 'scissors' }[e.code];
+    if (k) { e.preventDefault(); if (!e.repeat) throwHand(k); }
+    else if (mug.done && (e.code === 'Space' || e.code === 'Enter')) { e.preventDefault(); $('mugDone').click(); }
+    return;
+  }
+  if (loc === 'bar' && mix) {
+    const act = { ArrowLeft: () => movePair(-1), KeyA: () => movePair(-1), ArrowRight: () => movePair(1), KeyD: () => movePair(1),
+      ArrowUp: rotatePair, KeyW: rotatePair, ArrowDown: dropPair, KeyS: dropPair, Space: dropPair }[e.code];
+    if (act) { e.preventDefault(); if (!e.repeat) act(); }
+    return;
+  }
+  if (loc === 'uni' && simon && /^Digit[1-4]$/.test(e.code)) {
     e.preventDefault();
     if (!e.repeat) pressPad(Number(e.code.slice(5)) - 1);
     return;
@@ -1662,19 +1775,52 @@ fcan.addEventListener('pointerdown', e => { e.preventDefault(); flap(); });
 // iOS only shows :active button presses when the page listens for touches
 document.addEventListener('touchstart', () => {}, { passive: true });
 
-// ---------- Bar: Simon Says job and luck drinks ----------
-const BAR_APPLY_STEPS = 7;
-const BAR_XP_PENALTY = 8;          // for a mistake before getting halfway through a shift
-// Bar rank comes from bar XP. steps = shift length range (inclusive), pay = per drink
-// in each order you repeat correctly, tip = for finishing the whole shift
+// ---------- Bar: a hex drink-mixing puzzle job, and luck drinks ----------
+const BAR_APPLY_DRINKS = 3;        // drinks to serve in the job test
+const BAR_XP_PENALTY = 8;          // for filling the board before serving half the shift's drinks
+// Bar rank comes from bar XP. drinks = per shift, pay = per dropped piece a drink needs,
+// tip = for finishing the shift. Higher ranks also unlock harder recipes.
 const BAR_RANKS = [
-  { name: 'Barback', xp: 0, steps: [5, 7], pay: 2, tip: 15 },
-  { name: 'Bartender', xp: 25, steps: [6, 8], pay: 2, tip: 25 },
-  { name: 'Mixologist', xp: 60, steps: [7, 9], pay: 3, tip: 35 },
-  { name: 'Head Bartender', xp: 110, steps: [8, 10], pay: 3, tip: 50 },
-  { name: 'Bar Manager', xp: 180, steps: [9, 12], pay: 4, tip: 70 },
+  { name: 'Barback', xp: 0, drinks: 3, pay: 2, tip: 15 },
+  { name: 'Bartender', xp: 25, drinks: 4, pay: 2, tip: 25 },
+  { name: 'Mixologist', xp: 60, drinks: 4, pay: 3, tip: 35 },
+  { name: 'Head Bartender', xp: 110, drinks: 5, pay: 3, tip: 50 },
+  { name: 'Bar Manager', xp: 180, drinks: 5, pay: 3, tip: 70 },
 ];
-const PAD_TONES = [330, 392, 494, 587];
+// Ingredient blocks: border colour, icon, and the name of each level (1–4)
+const INGREDIENTS = {
+  alc: { color: '#e5483c', icon: '🥃', levels: ['Well', 'Call', 'Premium', 'Top shelf'] },
+  syr: { color: '#42b85a', icon: '🍯', levels: ['Soda', 'Juice', 'Simple syrup', 'Bitters'] },
+  ice: { color: '#4194e6', icon: '🧊', levels: ['Cubes', 'Crushed', 'Shaved', 'Clear sphere'] },
+  gar: { color: '#ecc63c', icon: '🍋', levels: ['Lime wedge', 'Cherry', 'Mint sprig', 'Flamed peel'] },
+};
+const ING_KEYS = Object.keys(INGREDIENTS);
+const MAX_LVL = 4;
+const TOP_BONUS = 20;   // three or more top-level blocks touching vanish for this
+// rank = bar rank index that unlocks it; needs = [ingredient, level]
+// Everything starts at level 2, so every drink means combining; harder drinks need level 3s and 4s
+const RECIPES = [
+  { name: 'Rum & Coke', rank: 0, needs: [['alc', 2], ['syr', 2]] },
+  { name: 'Gin & Tonic', rank: 0, needs: [['alc', 2], ['syr', 2], ['gar', 2]] },
+  { name: 'Vodka Cran', rank: 0, needs: [['alc', 2], ['syr', 2], ['ice', 2]] },
+  { name: 'Whiskey Sour', rank: 1, needs: [['alc', 3], ['syr', 2], ['gar', 2]] },
+  { name: 'Margarita', rank: 1, needs: [['alc', 3], ['syr', 2], ['ice', 2], ['gar', 2]] },
+  { name: 'Mojito', rank: 2, needs: [['alc', 3], ['syr', 3], ['ice', 2], ['gar', 3]] },
+  { name: 'Mint Julep', rank: 2, needs: [['alc', 3], ['syr', 3], ['ice', 3], ['gar', 3]] },
+  { name: 'Old Fashioned', rank: 3, needs: [['alc', 4], ['syr', 3], ['ice', 2], ['gar', 2]] },
+  { name: 'Long Island Iced Tea', rank: 4, needs: [['alc', 4], ['alc', 3], ['syr', 2], ['ice', 2], ['gar', 2]] },
+];
+// Dropped level-1 blocks a recipe takes to build (a level-n block is 3^(n-1) of them): sets the pay
+const piecesFor = needs => needs.reduce((n, [, l]) => n + 3 ** (l - 1), 0);
+// Bar XP for a drink: one per level above 1 in each ingredient
+const xpFor = needs => needs.reduce((n, [, l]) => n + l - 1, 0);
+// Board in CSS px: flat-topped hexes in columns, odd columns sit half a cell higher.
+// Pieces stack from the bottom of each column; the pair waits above the board.
+const MIX = { cols: 7, rows: 8, r: 25, w: 300 };
+MIX.hh = Math.sqrt(3) * MIX.r;                                     // hex height
+MIX.ox = (MIX.w - (MIX.r * 2 + (MIX.cols - 1) * MIX.r * 1.5)) / 2;  // left margin
+MIX.top = MIX.hh * 2 + 10;                                         // pair area height
+MIX.h = Math.round(MIX.top + MIX.hh * (MIX.rows + 0.5) + 8);
 const DRINKS = {
   beer: { icon: '🍺', name: 'Beer', price: 15, luck: 0.15, hands: 3 },
   whiskey: { icon: '🥃', name: 'Whiskey', price: 35, luck: 0.3, hands: 4 },
@@ -1684,7 +1830,9 @@ const DRINKS = {
 let barJob = load('rtb_barjob', 0) === 1;
 let barXp = load('rtb_barxp', 0);
 let drink = loadDrink();   // { k, hands } for the active drink, or null
-let simon = null;          // { mode: 'apply'|'shift', seq, round, idx, phase: 'showing'|'input', earned }
+// The puzzle in progress: board[c] is column c's pieces from the bottom up ({ ing, lvl, id });
+// pair = { a, b, c, o } with o: 0 = a|b side by side, 1 = a over b, 2 = b|a, 3 = b over a
+let mix = null;   // { mode: 'apply'|'shift', board, pair, total, served, drink: { name, needs: [{ ing, lvl, done }], pieces }, earned, xp, pay, tip, nextId, over }
 
 function loadDrink() {
   try { const d = JSON.parse(localStorage.getItem('rtb_drink') || 'null'); return d && DRINKS[d.k] && d.hands > 0 ? d : null; }
@@ -1693,6 +1841,16 @@ function loadDrink() {
 function saveDrink() { try { localStorage.setItem('rtb_drink', JSON.stringify(drink)); } catch {} }
 function saveBar() { save('rtb_barjob', barJob ? 1 : 0); save('rtb_barxp', barXp); }
 function barRank() { return BAR_RANKS[rankIndex(barXp, BAR_RANKS)]; }
+const ingName = (k, lvl) => INGREDIENTS[k].levels[lvl - 1] + (k === 'alc' ? ' liquor' : '');
+
+const mcan = $('mix');
+const mctx = mcan.getContext('2d');
+(function setupMix() {
+  const dpr = window.devicePixelRatio || 1;
+  mcan.width = MIX.w * dpr;
+  mcan.height = MIX.h * dpr;
+  mctx.scale(dpr, dpr);
+})();
 
 function setRMsg(text, kind = '') {
   const m = $('rmsg');
@@ -1714,20 +1872,32 @@ function renderBar() {
       `🍸 ${r.name}`,
       next ? `XP ${barXp} / ${next.xp}` : `XP ${barXp} · top rank`,
       next ? (barXp - r.xp) / (next.xp - r.xp) * 100 : 100,
-      `${r.steps[0]}–${r.steps[1]} drinks · ${fmt(r.pay)} per drink · ${fmt(r.tip)} tip` + (next ? ` · Next: ${next.name}` : ''));
+      `${r.drinks} drinks a shift · ${fmt(r.pay)} per block · ${fmt(r.tip)} tip` + (next ? ` · Next: ${next.name}, new recipes` : ''));
   } else {
-    $('barCard').innerHTML = careerCardHTML('❌ Not hired', '', 0, `Repeat a ${BAR_APPLY_STEPS}-drink order to get hired.`);
+    $('barCard').innerHTML = careerCardHTML('❌ Not hired', '', 0, `Mix ${BAR_APPLY_DRINKS} drinks without filling the board to get hired.`);
   }
-  $('rq').textContent = simon
-    ? (simon.phase === 'showing' ? 'Watch the order…' : 'Your turn: repeat it')
-    : barJob ? 'Ready to tend bar?' : `The bartender wants to see if you can keep up. Repeat ${BAR_APPLY_STEPS} drinks in a row.`;
-  $('simonInfo').textContent = simon
-    ? `Order ${simon.round}/${simon.seq.length}` + (simon.mode === 'shift' ? ` · Earned ${fmt(simon.earned)}` : '') + ' · Tap the drinks or press 1–4'
+  $('rq').textContent = mix ? '' : barJob ? 'Ready to tend bar?' : `The bartender wants to see you mix. Serve ${BAR_APPLY_DRINKS} drinks before the board fills up.`;
+  $('mixWrap').classList.toggle('hidden', !mix);
+  renderRecipe();
+  $('mixInfo').textContent = mix
+    ? `Drink ${Math.min(mix.served + 1, mix.total)}/${mix.total}` + (mix.mode === 'shift' ? ` · Earned ${fmt(mix.earned)}` : '')
+      + ' · Touch 3+ matching blocks to combine them a level up. Blocks the drink needs go into the glass.'
+      + ' Move: ◀ ▶, arrow keys or tap a column. Rotate: ⟳ or ↑. Drop: ▼, ↓, Space or tap the same column again.'
     : `${barJob ? 'A shift' : 'Each try'} takes ${DAYS_PER_EVENT} days.`;
   const b = $('barBtn');
-  b.classList.toggle('hidden', !!simon);
-  b.textContent = barJob ? 'Start shift' : `Apply (${BAR_APPLY_STEPS}-drink test)`;
+  b.classList.toggle('hidden', !!mix);
+  b.textContent = barJob ? 'Start shift' : `Apply (${BAR_APPLY_DRINKS}-drink test)`;
   renderDrinks();
+}
+
+function renderRecipe() {
+  const box = $('mixRecipe');
+  if (!mix) { box.innerHTML = ''; return; }
+  const d = mix.drink;
+  box.innerHTML = `<div class="recipe-name">🍸 ${d.name}</div>` + d.needs.map(n => {
+    const ing = INGREDIENTS[n.ing];
+    return `<span class="need${n.done ? ' done' : ''}" style="border-color:${ing.color}">${n.done ? '✓' : ing.icon} ${ingName(n.ing, n.lvl)} <b style="color:${ing.color}">${'●'.repeat(n.lvl)}</b></span>`;
+  }).join('');
 }
 
 function renderDrinks() {
@@ -1744,7 +1914,7 @@ function renderDrinks() {
     const b = document.createElement('button');
     b.className = 'gold';
     b.textContent = 'Buy';
-    b.disabled = spendable() < it.price || !!drink || !!simon;
+    b.disabled = spendable() < it.price || !!drink || !!mix;
     b.onclick = () => buyDrink(k);
     row.append(b);
     box.append(row);
@@ -1753,84 +1923,180 @@ function renderDrinks() {
 
 function buyDrink(k) {
   const it = DRINKS[k];
-  if (drink || simon || spendable() < it.price) return;
+  if (drink || mix || spendable() < it.price) return;
   bank -= it.price;
   save('rtb_bank', bank);
   drink = { k, hands: it.hands };
   saveDrink();
-  beep(1568, 0.08, 'triangle', 0.08);
-  setTimeout(() => beep(2093, 0.25, 'triangle', 0.08), 70);
+  ching();
   setRMsg(`${it.icon} Cheers! Your luck is up for the next ${it.hands} hands.`, 'good');
   renderBar();
   renderStats();
 }
 
-function lightPad(p, ms) {
-  const el = document.querySelector(`.pad[data-pad="${p}"]`);
-  el.classList.add('lit');
-  beep(PAD_TONES[p], ms / 1000, 'sine', 0.15);
-  setTimeout(() => el.classList.remove('lit'), ms);
+function newDrink() {
+  const top = mix.mode === 'apply' ? 0 : rankIndex(barXp, BAR_RANKS);
+  const options = RECIPES.filter(r => r.rank <= top);
+  const r = options[Math.floor(Math.random() * options.length)];
+  mix.drink = { name: r.name, needs: r.needs.map(([ing, lvl]) => ({ ing, lvl, done: false })), pieces: piecesFor(r.needs), xp: xpFor(r.needs) };
 }
 
-function startSimon() {
-  if (simon) return;
+// New blocks lean toward what the drink still needs, so every order is reachable
+function newPiece() {
+  const wanted = mix.drink.needs.filter(n => !n.done).map(n => n.ing);
+  const ing = wanted.length && Math.random() < 0.5 ? wanted[Math.floor(Math.random() * wanted.length)] : ING_KEYS[Math.floor(Math.random() * ING_KEYS.length)];
+  return { ing, lvl: 1, id: 0 };
+}
+
+function newPair() { mix.pair = { a: newPiece(), b: newPiece(), c: 3, o: 0 }; }
+
+function startMix() {
+  if (mix) return;
   beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
   const mode = barJob ? 'shift' : 'apply';
   const r = barRank();
-  const n = mode === 'apply' ? BAR_APPLY_STEPS : r.steps[0] + Math.floor(Math.random() * (r.steps[1] - r.steps[0] + 1));
-  simon = { mode, seq: Array.from({ length: n }, () => Math.floor(Math.random() * 4)), round: 1, idx: 0, phase: 'showing', earned: 0, pay: r.pay, tip: r.tip };
-  setRMsg(mode === 'shift' ? `Tonight's rush: ${n} drinks.` : '');
+  mix = {
+    mode, board: Array.from({ length: MIX.cols }, () => []), total: mode === 'apply' ? BAR_APPLY_DRINKS : r.drinks,
+    served: 0, earned: 0, xp: 0, pay: r.pay, tip: r.tip, nextId: 1, over: false,
+  };
+  newDrink();
+  newPair();
+  setRMsg(mode === 'shift' ? `Tonight's rush: ${mix.total} drinks.` : '');
   renderBar();
   renderMap();
-  setTimeout(showRound, 600);
+  drawMix();
 }
 
-// Play the first `round` drinks of the order, then hand over to the player
-function showRound() {
-  if (!simon) return;
-  const s = simon;
-  s.phase = 'showing';
-  s.idx = 0;
-  renderBar();
-  const gap = Math.max(380, 650 - s.round * 25);
-  for (let i = 0; i < s.round; i++) setTimeout(() => simon === s && lightPad(s.seq[i], gap * 0.6), i * gap);
-  setTimeout(() => {
-    if (simon !== s) return;
-    s.phase = 'input';
-    renderBar();
-  }, s.round * gap);
+const horizontal = p => p.o % 2 === 0;
+// The pair's pieces with their columns, in the order they land (bottom first when stacked)
+function pairCells(p) {
+  return [[[p.c, p.a], [p.c + 1, p.b]], [[p.c, p.b], [p.c, p.a]], [[p.c, p.b], [p.c + 1, p.a]], [[p.c, p.a], [p.c, p.b]]][p.o];
 }
 
-function pressPad(p) {
-  const s = simon;
-  if (!s || s.phase !== 'input') return;
-  if (s.seq[s.idx] !== p) {
-    document.querySelector(`.pad[data-pad="${p}"]`).classList.add('lit');
-    setTimeout(() => document.querySelector(`.pad[data-pad="${p}"]`).classList.remove('lit'), 250);
-    return endSimon(false);
+function movePair(dc) {
+  if (!mix || mix.over) return;
+  const p = mix.pair, max = MIX.cols - (horizontal(p) ? 2 : 1);
+  p.c = Math.max(0, Math.min(max, p.c + dc));
+  drawMix();
+}
+
+function rotatePair() {
+  if (!mix || mix.over) return;
+  const p = mix.pair;
+  p.o = (p.o + 1) % 4;
+  if (horizontal(p)) p.c = Math.min(p.c, MIX.cols - 2);
+  beep(700, 0.03, 'square', 0.03);
+  drawMix();
+}
+
+// Neighbours of a cell (r counts up from the bottom; odd columns sit half a cell higher)
+function neighbours(c, r) {
+  const side = c % 2 ? [r, r + 1] : [r - 1, r];
+  const out = [[c, r - 1], [c, r + 1]];
+  for (const dc of [-1, 1]) for (const rr of side) out.push([c + dc, rr]);
+  return out.filter(([cc, rr]) => cc >= 0 && cc < MIX.cols && rr >= 0 && rr < mix.board[cc].length);
+}
+
+function removeCells(cells) {
+  cells.sort((x, y) => y[1] - x[1]);   // top first so the indexes below stay valid
+  for (const [c, r] of cells) mix.board[c].splice(r, 1);
+}
+
+// One merge: the group of 3+ matching blocks containing the newest block becomes one block a level up
+// where the newest one was (top-level groups vanish for a bonus). Returns true if anything happened.
+function mergeOnce() {
+  const seen = new Set();
+  let best = null;
+  for (let c = 0; c < MIX.cols; c++) for (let r = 0; r < mix.board[c].length; r++) {
+    if (seen.has(c + ',' + r)) continue;
+    const p = mix.board[c][r], group = [[c, r]], stack = [[c, r]];
+    seen.add(c + ',' + r);
+    while (stack.length) {
+      const [cc, rr] = stack.pop();
+      for (const [nc, nr] of neighbours(cc, rr)) {
+        const q = mix.board[nc][nr];
+        if (seen.has(nc + ',' + nr) || q.ing !== p.ing || q.lvl !== p.lvl) continue;
+        seen.add(nc + ',' + nr);
+        group.push([nc, nr]);
+        stack.push([nc, nr]);
+      }
+    }
+    if (group.length < 3) continue;
+    const newest = Math.max(...group.map(([gc, gr]) => mix.board[gc][gr].id));
+    if (!best || newest > best.newest) best = { group, newest };
   }
-  lightPad(p, 200);
-  s.idx++;
-  if (s.idx < s.round) return;
-  // Order complete
-  if (s.mode === 'shift') {
-    const pay = s.round * s.pay;
-    s.earned += pay;
+  if (!best) return false;
+  const keep = best.group.find(([gc, gr]) => mix.board[gc][gr].id === best.newest);
+  const p = mix.board[keep[0]][keep[1]];
+  if (p.lvl === MAX_LVL) {
+    removeCells(best.group);
+    if (mix.mode === 'shift') { mix.earned += TOP_BONUS; bank += TOP_BONUS; updateHigh(); }
+    setRMsg(`✨ Top-shelf combo! ${mix.mode === 'shift' ? `+${fmt(TOP_BONUS)}` : ''}`, 'good');
+  } else {
+    p.lvl++;
+    removeCells(best.group.filter(g => g !== keep));
+  }
+  beep(520 + p.lvl * 160, 0.1, 'triangle', 0.12);
+  return true;
+}
+
+// A block that the drink needs is pulled off the board into the glass
+function useOnce() {
+  for (const n of mix.drink.needs) {
+    if (n.done) continue;
+    for (let c = 0; c < MIX.cols; c++) {
+      const r = mix.board[c].findIndex(p => p.ing === n.ing && p.lvl === n.lvl);
+      if (r < 0) continue;
+      mix.board[c].splice(r, 1);
+      n.done = true;
+      setRMsg(`${INGREDIENTS[n.ing].icon} ${ingName(n.ing, n.lvl)} into the glass!`, 'good');
+      beep(1046, 0.08, 'sine', 0.12);
+      return true;
+    }
+  }
+  return false;
+}
+
+function dropPair() {
+  if (!mix || mix.over) return;
+  for (const [c, p] of pairCells(mix.pair)) {
+    p.id = mix.nextId++;
+    mix.board[c].push(p);
+  }
+  beep(330, 0.05, 'square', 0.05);
+  while (mergeOnce() || useOnce());   // chain until the board settles
+  if (mix.drink.needs.every(n => n.done)) serveDrink();
+  if (!mix) return;   // the order was finished
+  if (mix.board.some(col => col.length > MIX.rows)) return endMix(false);
+  newPair();
+  renderBar();
+  drawMix();
+}
+
+function serveDrink() {
+  const d = mix.drink;
+  mix.served++;
+  mix.xp += d.xp;
+  if (mix.mode === 'shift') {
+    const pay = d.pieces * mix.pay;
+    mix.earned += pay;
     bank += pay;
     updateHigh();
-    setRMsg(`Order served! +${fmt(pay)}`, 'good');
+    setRMsg(`🍸 ${d.name} served! +${fmt(pay)}`, 'good');
     renderStats();
+  } else {
+    setRMsg(`🍸 ${d.name} served!`, 'good');
   }
-  if (s.round === s.seq.length) return endSimon(true);
-  s.round++;
-  s.phase = 'showing';
-  renderBar();
-  setTimeout(showRound, 700);
+  beep(1318, 0.15, 'triangle', 0.12);
+  if (mix.served >= mix.total) return endMix(true);
+  newDrink();
 }
 
-function endSimon(ok) {
-  const s = simon;
-  simon = null;
+function endMix(ok) {
+  const s = mix;
+  s.over = true;
+  drawMix();
+  mix = null;
   if (!ok) beep(140, 0.3, 'sawtooth', 0.15);
   if (s.mode === 'apply') {
     if (ok) {
@@ -1840,45 +2106,41 @@ function endSimon(ok) {
       setRMsg('');
       showModal('🍸', "You're hired!", `The bar is taking you on as a ${BAR_RANKS[0].name}. Work a shift here any time.`, 'Nice', () => renderBar());
     } else {
-      setRMsg(`Wrong drink. You remembered ${s.round - 1} of ${s.seq.length} drinks. Try again.`, 'bad');
+      setRMsg(`The board filled up. You served ${s.served} of ${s.total} drinks. Try again.`, 'bad');
     }
-    renderBar();
-    passTime(DAYS_PER_EVENT);
+  } else if (ok) {
+    s.earned += s.tip;
+    bank += s.tip;
+    updateHigh();
+    setRMsg(`Shift done! You earned ${fmt(s.earned)}, including a ${fmt(s.tip)} tip. ${settleBarXp(s, true)}`, 'good');
   } else {
-    if (ok) {
-      s.earned += s.tip;
-      bank += s.tip;
-      updateHigh();
-      setRMsg(`Shift done! You earned ${fmt(s.earned)}, including a ${fmt(s.tip)} tip. ${settleBarXp(s, true)}`, 'good');
-    } else {
-      setRMsg(`Wrong drink! Shift over. You earned ${fmt(s.earned)}. ${settleBarXp(s, false)}`, 'bad');
-    }
-    renderBar();
-    passTime(DAYS_PER_EVENT);
+    setRMsg(`The bar's backed up! Shift over. You earned ${fmt(s.earned)}. ${settleBarXp(s, false)}`, 'bad');
   }
+  renderBar();
+  $('mixWrap').classList.remove('hidden');   // leave the final board on screen
+  $('mixInfo').textContent = '';
   renderMap();
+  passTime(DAYS_PER_EVENT);
 }
 
-// Bar XP for a finished shift; returns a short result line. Promotions and
-// demotions get a popup. XP never goes below 0, so you can't be fired here.
+// Bar XP for a finished shift: the blocks behind every drink served. Filling the board before
+// serving half the drinks costs XP instead. Returns a short result line; rank changes get a popup.
 function settleBarXp(s, ok) {
   const before = rankIndex(barXp, BAR_RANKS);
-  const done = s.round - 1;   // orders completed before the mistake
   let line;
-  if (ok) {
-    barXp += s.seq.length;
-    line = `+${s.seq.length} XP.`;
-  } else if (done < s.seq.length / 2) {
+  if (ok || s.served >= s.total / 2) {
+    barXp += s.xp;
+    line = s.xp ? `+${s.xp} XP.` : 'No XP.';
+  } else {
     const lost = Math.min(BAR_XP_PENALTY, barXp);
     barXp -= lost;
-    line = lost ? `−${lost} XP for messing up early.` : 'No XP.';
-  } else {
-    line = 'No XP (finish the shift to earn it).';
+    line = lost ? `−${lost} XP for backing up early.` : 'No XP.';
   }
   const after = rankIndex(barXp, BAR_RANKS);
   if (after > before) {
     const r = BAR_RANKS[after];
-    showModal('⭐', 'Promoted!', `You're now ${/^[AEIOU]/.test(r.name) ? 'an' : 'a'} ${r.name}: ${r.steps[0]}–${r.steps[1]} drink shifts, ${fmt(r.pay)} per drink and a ${fmt(r.tip)} tip.`, 'Nice', () => {});
+    const unlocked = RECIPES.filter(x => x.rank === after).map(x => x.name).join(' and ');
+    showModal('⭐', 'Promoted!', `You're now ${/^[AEIOU]/.test(r.name) ? 'an' : 'a'} ${r.name}: ${r.drinks}-drink shifts, ${fmt(r.pay)} per block and a ${fmt(r.tip)} tip.${unlocked ? ` New recipes: ${unlocked}.` : ''}`, 'Nice', () => {});
   } else if (after < before) {
     showModal('📉', 'Demoted', `You're back to ${BAR_RANKS[after].name}.`, 'OK', () => {}, 'bad');
   }
@@ -1886,15 +2148,323 @@ function settleBarXp(s, ok) {
   return line;
 }
 
-$('barBtn').onclick = startSimon;
+function hexPath(g, x, y, r) {
+  g.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const a = Math.PI / 3 * i;
+    g[i ? 'lineTo' : 'moveTo'](x + r * Math.cos(a), y + r * Math.sin(a));
+  }
+  g.closePath();
+}
+const cellX = c => MIX.ox + MIX.r + c * MIX.r * 1.5;
+const cellY = (c, r) => MIX.h - 8 - (r * MIX.hh + MIX.hh / 2 + (c % 2 ? MIX.hh / 2 : 0));
+
+function drawPiece(g, p, x, y, alpha = 1) {
+  const ing = INGREDIENTS[p.ing];
+  g.globalAlpha = alpha;
+  hexPath(g, x, y, MIX.r - 2);
+  g.fillStyle = '#2b1a0f';
+  g.fill();
+  g.lineWidth = 4;
+  g.strokeStyle = ing.color;
+  g.stroke();
+  g.font = '18px system-ui, sans-serif';
+  g.fillStyle = '#fff';
+  g.fillText(ing.icon, x, y - 3);
+  // Level as coloured points along the bottom
+  g.fillStyle = ing.color;
+  for (let i = 0; i < p.lvl; i++) {
+    g.beginPath();
+    g.arc(x + (i - (p.lvl - 1) / 2) * 7, y + 13, 2.6, 0, Math.PI * 2);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+}
+
+function drawMix() {
+  const g = mctx, m = mix || drawMix.last;
+  if (!m) return;
+  drawMix.last = m;
+  const wood = g.createLinearGradient(0, 0, MIX.w, MIX.h);
+  wood.addColorStop(0, '#6b4528');
+  wood.addColorStop(1, '#3f2716');
+  g.fillStyle = wood;
+  g.fillRect(0, 0, MIX.w, MIX.h);
+  g.fillStyle = 'rgba(0,0,0,.25)';
+  g.fillRect(0, 0, MIX.w, MIX.top);
+  g.textAlign = 'center';
+  g.textBaseline = 'middle';
+  // Empty cells, and the top row drawn red as the limit
+  for (let c = 0; c < MIX.cols; c++) for (let r = 0; r < MIX.rows; r++) {
+    hexPath(g, cellX(c), cellY(c, r), MIX.r - 2);
+    g.strokeStyle = r === MIX.rows - 1 ? 'rgba(255,120,120,.35)' : 'rgba(255,255,255,.09)';
+    g.lineWidth = 1.5;
+    g.stroke();
+  }
+  for (let c = 0; c < MIX.cols; c++) m.board[c].forEach((p, r) => drawPiece(g, p, cellX(c), r < MIX.rows ? cellY(c, r) : cellY(c, MIX.rows - 1) - MIX.hh * (r - MIX.rows + 1)));
+  if (!m.over) {
+    // Ghosts where the pair would land, then the pair itself above the board
+    const cells = pairCells(m.pair), heights = m.board.map(col => col.length);
+    for (const [c, p] of cells) {
+      const r = heights[c]++;
+      if (r < MIX.rows) drawPiece(g, p, cellX(c), cellY(c, r), 0.3);
+    }
+    const p = m.pair, y0 = MIX.top - MIX.hh / 2 - 4;
+    if (horizontal(p)) {
+      drawPiece(g, cells[0][1], cellX(p.c), y0);
+      drawPiece(g, cells[1][1], cellX(p.c + 1), y0);
+    } else {
+      drawPiece(g, cells[0][1], cellX(p.c), y0);
+      drawPiece(g, cells[1][1], cellX(p.c), y0 - MIX.hh);
+    }
+  } else {
+    g.fillStyle = 'rgba(0,0,0,.6)';
+    g.fillRect(20, MIX.h / 2 - 20, MIX.w - 40, 40);
+    g.fillStyle = '#f5c542';
+    g.font = 'bold 18px system-ui, sans-serif';
+    g.fillText(m.served >= m.total ? 'Last call! 🎉' : 'Backed up!', MIX.w / 2, MIX.h / 2);
+  }
+}
+
+$('barBtn').onclick = startMix;
+document.querySelectorAll('[data-mix]').forEach(b => b.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  ({ left: () => movePair(-1), right: () => movePair(1), rot: rotatePair, drop: dropPair })[b.dataset.mix]();
+}));
+// Tapping a column moves the pair there; tapping the column it's already over drops it
+mcan.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (!mix || mix.over) return;
+  const rect = mcan.getBoundingClientRect();
+  const x = (e.clientX - rect.left) / rect.width * MIX.w;
+  const c = Math.max(0, Math.min(MIX.cols - 1, Math.round((x - MIX.ox - MIX.r) / (MIX.r * 1.5))));
+  const p = mix.pair, target = Math.min(c, MIX.cols - (horizontal(p) ? 2 : 1));
+  if (target === p.c) dropPair();
+  else { p.c = target; drawMix(); }
+});
+
+// ---------- University: Simon Says study sessions toward a degree ----------
+const TUITION = 50;        // per study session
+const DEGREE_XP = 50;      // XP to graduate
+const DEGREES = {
+  stats: { icon: '📊', name: 'Statistics', perk: 'The casino shows the odds of every guess.' },
+  finance: { icon: '💼', name: 'Finance', perk: 'Savings earn 0.3% a day instead of 0.2%, and loans and your credit card charge 25% less interest.' },
+  medical: { icon: '🩺', name: 'Medicine', perk: 'Hospital bills are halved, smoking withdrawal is half as bad, and 3 gym dodges take a cigarette off instead of 5.' },
+  civil: { icon: '🏗️', name: 'Civil Engineering', perk: 'You know the roads: half the chance of traffic on every trip.' },
+};
+const PAD_TONES = [330, 392, 494, 587];
+
+function loadJSON(key, fallback) {
+  try { const v = JSON.parse(localStorage.getItem(key)); return v === null ? fallback : v; }
+  catch { return fallback; }
+}
+function saveJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} }
+
+let degrees = loadJSON('rtb_degrees', []);   // degrees earned, by key
+let degXp = { stats: 0, finance: 0, medical: 0, civil: 0, ...loadJSON('rtb_degxp', {}) };
+let major = DEGREES[loadJSON('rtb_major', 'stats')] ? loadJSON('rtb_major', 'stats') : 'stats';
+let simon = null;   // study session: { seq, round, idx, phase: 'showing'|'input', major }
+const hasDegree = k => degrees.includes(k);
+function saveUni() { saveJSON('rtb_degrees', degrees); saveJSON('rtb_degxp', degXp); saveJSON('rtb_major', major); }
+
+function setUMsg(text, kind = '') {
+  const m = $('umsg');
+  m.textContent = text;
+  m.className = 'msg ' + kind;
+}
+
+function renderUni() {
+  const d = DEGREES[major], done = hasDegree(major);
+  $('uniCard').innerHTML = careerCardHTML(
+    `🎓 ${degrees.length ? degrees.map(k => DEGREES[k].icon).join(' ') + ` ${degrees.length} degree${degrees.length === 1 ? '' : 's'}` : 'No degrees yet'}`,
+    done ? `${d.name} ✓` : `${d.name} XP ${degXp[major]} / ${DEGREE_XP}`,
+    done ? 100 : degXp[major] / DEGREE_XP * 100, `${d.icon} ${d.perk}`);
+  const box = $('majors');
+  box.innerHTML = '';
+  for (const [k, deg] of Object.entries(DEGREES)) {
+    const b = document.createElement('button');
+    b.classList.toggle('on', k === major);
+    b.textContent = `${deg.icon} ${deg.name} ${hasDegree(k) ? '✓' : `${degXp[k]}/${DEGREE_XP}`}`;
+    b.disabled = !!simon;
+    b.onclick = () => { major = k; saveUni(); renderUni(); };
+    box.append(b);
+  }
+  $('uq').textContent = simon
+    ? (simon.phase === 'showing' ? 'Watch the lights…' : 'Your turn: repeat them')
+    : done ? `You already have a ${d.name} degree. Pick another to study.`
+    : `Study ${d.name}: repeat the lights for as long as you can. They get longer and faster.`;
+  $('uniInfo').textContent = simon
+    ? `Round ${simon.round} · Tap the books or press 1–4`
+    : `${fmt(TUITION)} a session, ${DAYS_PER_EVENT} days each. Each round you repeat earns 1 XP.`;
+  const b = $('study');
+  b.classList.toggle('hidden', !!simon);
+  b.textContent = `📚 Study (${fmt(TUITION)})`;
+  b.disabled = done || spendable() < TUITION;
+}
+
+function lightPad(p, ms) {
+  const el = document.querySelector(`.pad[data-pad="${p}"]`);
+  el.classList.add('lit');
+  beep(PAD_TONES[p], ms / 1000, 'sine', 0.15);
+  setTimeout(() => el.classList.remove('lit'), ms);
+}
+
+function startStudy() {
+  if (simon || hasDegree(major) || spendable() < TUITION) return;
+  beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
+  bank -= TUITION;
+  save('rtb_bank', bank);
+  simon = { seq: [Math.floor(Math.random() * 4)], round: 1, idx: 0, phase: 'showing', major };
+  setUMsg('');
+  renderUni();
+  renderStats();
+  setTimeout(showRound, 600);
+}
+
+// Play the sequence so far, faster every round, then hand over to the player
+function showRound() {
+  if (!simon) return;
+  const s = simon;
+  s.phase = 'showing';
+  s.idx = 0;
+  renderUni();
+  const gap = Math.max(200, 620 - (s.round - 1) * 35);
+  for (let i = 0; i < s.round; i++) setTimeout(() => simon === s && lightPad(s.seq[i], gap * 0.6), i * gap);
+  setTimeout(() => {
+    if (simon !== s) return;
+    s.phase = 'input';
+    renderUni();
+  }, s.round * gap);
+}
+
+function pressPad(p) {
+  const s = simon;
+  if (!s || s.phase !== 'input') return;
+  if (s.seq[s.idx] !== p) {
+    document.querySelector(`.pad[data-pad="${p}"]`).classList.add('lit');
+    setTimeout(() => document.querySelector(`.pad[data-pad="${p}"]`).classList.remove('lit'), 250);
+    return endStudy();
+  }
+  lightPad(p, 180);
+  s.idx++;
+  if (s.idx < s.round) return;
+  // Round complete: one more light next time
+  s.round++;
+  s.seq.push(Math.floor(Math.random() * 4));
+  s.phase = 'showing';
+  setUMsg(`Round ${s.round - 1} done!`, 'good');
+  renderUni();
+  setTimeout(showRound, 650);
+}
+
+function endStudy() {
+  const s = simon;
+  simon = null;
+  beep(140, 0.3, 'sawtooth', 0.15);
+  const gained = s.round - 1, d = DEGREES[s.major];
+  degXp[s.major] = Math.min(DEGREE_XP, degXp[s.major] + gained);
+  setUMsg(`Wrong light! You repeated ${gained} round${gained === 1 ? '' : 's'}: +${gained} ${d.name} XP.`, gained ? 'good' : 'bad');
+  if (degXp[s.major] >= DEGREE_XP && !hasDegree(s.major)) {
+    degrees.push(s.major);
+    showModal('🎓', 'You graduated!', `You earned a degree in ${d.name}. ${d.perk}`, 'Nice', () => {});
+  }
+  saveUni();
+  renderUni();
+  passTime(DAYS_PER_EVENT);
+  renderUni();
+}
+
+$('study').onclick = startStudy;
 document.querySelectorAll('.pad').forEach(b => b.addEventListener('pointerdown', e => {
   e.preventDefault();
   pressPad(Number(b.dataset.pad));
 }));
 
+// ---------- Muggings: rock, paper, scissors on the way to the Bank or Bar ----------
+const MUG_FROM = 3;             // no muggings before this month
+const MUG_PER_RENT = 0.05;      // chance for each rent's worth of cash above the first
+const MUG_MAX = 0.4;
+const MUG_TAKE = 0.25;          // share of your cash taken in month 3
+const MUG_TAKE_GROWTH = 0.025;  // added each month after
+const MUG_TAKE_MAX = 0.5;
+const CLUB_PRICE = 150;
+const THROWS = { rock: '✊', paper: '✋', scissors: '✌️' };
+const BEATS = { rock: 'scissors', paper: 'rock', scissors: 'paper' };
+
+let clubs = load('rtb_club', 0);   // billy clubs owned
+let mug = null;   // { take, done, onDone }
+
+const muggingChance = () => month < MUG_FROM || bank <= 0 ? 0
+  : Math.min(MUG_MAX, Math.max(0, (bank / rentFor(month) - 1) * MUG_PER_RENT));
+const mugShare = () => Math.min(MUG_TAKE_MAX, MUG_TAKE + Math.max(0, month - MUG_FROM) * MUG_TAKE_GROWTH);
+
+function startMugging(onDone) {
+  mug = { take: Math.floor(bank * mugShare()), done: false, onDone };
+  beep(180, 0.2, 'sawtooth', 0.12);
+  $('mugText').textContent = `A mugger steps out of an alley and wants ${fmt(mug.take)} (${pct(mugShare())} of your cash). Play rock, paper, scissors for it. Ties go to you.`
+    + (clubs ? ` You've got ${clubs} billy club${clubs === 1 ? '' : 's'} for a second chance.` : '');
+  $('mugResult').textContent = '';
+  $('mugThrows').classList.remove('hidden');
+  $('mugDone').classList.add('hidden');
+  $('mugBox').classList.remove('hidden');
+  renderMap();
+}
+
+function throwHand(k) {
+  if (!mug || mug.done) return;
+  const keys = Object.keys(THROWS), theirs = keys[Math.floor(Math.random() * 3)];
+  const shown = `You threw ${THROWS[k]}, the mugger threw ${THROWS[theirs]}.`;
+  if (k === theirs || BEATS[k] === theirs) {
+    mug.done = true;
+    beep(1046, 0.12, 'triangle', 0.12);
+    $('mugResult').textContent = `${shown} ${k === theirs ? 'A tie goes to you: ' : ''}you get away with your cash!`;
+    $('mugResult').className = 'good';
+  } else if (clubs > 0) {
+    clubs--;
+    save('rtb_club', clubs);
+    beep(220, 0.1, 'square', 0.12);
+    $('mugResult').textContent = `${shown} 🏏 You pull out your billy club and the mugger backs off a step. Throw again!`;
+    $('mugResult').className = '';
+  } else {
+    mug.done = true;
+    bank -= mug.take;
+    save('rtb_bank', bank);
+    beep(140, 0.35, 'sawtooth', 0.15);
+    $('mugResult').textContent = `${shown} They took ${fmt(mug.take)}.`;
+    $('mugResult').className = 'bad';
+  }
+  if (mug.done) {
+    $('mugThrows').classList.add('hidden');
+    $('mugDone').classList.remove('hidden');
+    $('mugDone').focus();
+  }
+  renderStats();
+}
+
+function buyClub() {
+  if (spendable() < CLUB_PRICE) return;
+  bank -= CLUB_PRICE;
+  save('rtb_bank', bank);
+  clubs++;
+  save('rtb_club', clubs);
+  ching();
+  setSMsg('🏏 Got a billy club. If you lose to a mugger, you get another throw.', 'good');
+  renderStore();
+  renderStats();
+}
+
+document.querySelectorAll('[data-throw]').forEach(b => b.addEventListener('click', () => throwHand(b.dataset.throw)));
+$('mugDone').onclick = () => {
+  $('mugBox').classList.add('hidden');
+  const done = mug.onDone;
+  mug = null;
+  done();
+};
+
 // ---------- Gym: membership and a dodging workout ----------
 const GYM_FEE = 40;             // asked on your first visit each month
-const DODGES_PER_CIG = 5;       // dodges needed to take one off the cigarette count
+const DODGES_PER_CIG = 5;       // dodges needed to take one off the cigarette count (3 with Medicine)
+const dodgesPerCig = () => hasDegree('medical') ? 3 : DODGES_PER_CIG;
 // Canvas size in CSS px, and physics in px and seconds
 const RUN = {
   w: 300, h: 200, ground: 172, px: 56, pw: 26, ph: 34, size: 24,
@@ -1943,7 +2513,7 @@ function renderGym() {
   rcan.classList.toggle('hidden', !paid || !run);
   $('gymInfo').textContent = !paid ? (spendable() < GYM_FEE ? `You need ${fmt(GYM_FEE)}. Come back when you have it.` : '')
     : working ? 'Tap the game or press Space to jump.'
-    : `🚬 Cigarettes smoked: ${cigsSmoked}. Every ${DODGES_PER_CIG} dodges takes one off. A workout takes ${DAYS_PER_EVENT} days.`;
+    : `🚬 Cigarettes smoked: ${cigsSmoked}. Every ${dodgesPerCig()} dodges takes one off. A workout takes ${DAYS_PER_EVENT} days.`;
 }
 
 function payGym() {
@@ -2015,7 +2585,7 @@ function runLoop(now) {
       if (!th.passed && th.x + RUN.size / 2 < pL) {
         th.passed = true;
         r.dodged++;
-        if (r.dodged % DODGES_PER_CIG === 0) beep(1046, 0.1, 'triangle', 0.12);
+        if (r.dodged % dodgesPerCig() === 0) beep(1046, 0.1, 'triangle', 0.12);
       }
     }
     r.things = r.things.filter(th => th.x > -RUN.size);
@@ -2049,7 +2619,7 @@ function drawRunner() {
   c.fillStyle = '#fff';
   c.font = 'bold 16px system-ui, sans-serif';
   c.textBaseline = 'top';
-  c.fillText(`Dodged ${r.dodged} · −${Math.floor(r.dodged / DODGES_PER_CIG)} 🚬`, RUN.w / 2, 10);
+  c.fillText(`Dodged ${r.dodged} · −${Math.floor(r.dodged / dodgesPerCig())} 🚬`, RUN.w / 2, 10);
   const banner = r.state === 'ready' ? 'Tap or press Space to start' : r.state === 'over' ? 'Ouch! Workout over' : '';
   if (banner) {
     c.fillStyle = 'rgba(0,0,0,.55)';
@@ -2067,13 +2637,13 @@ function endWorkout() {
   drawRunner();
   working = false;
   beep(140, 0.25, 'sawtooth', 0.12);
-  const quit = Math.min(cigsSmoked, Math.floor(r.dodged / DODGES_PER_CIG));
+  const quit = Math.min(cigsSmoked, Math.floor(r.dodged / dodgesPerCig()));
   cigsSmoked -= quit;
   save('rtb_cigs', cigsSmoked);
   setGMsg(quit
     ? `Dodged ${r.dodged}! Your cigarette count dropped by ${quit} to ${cigsSmoked}.`
-    : r.dodged >= DODGES_PER_CIG ? `Dodged ${r.dodged}! You're already smoke-free.`
-    : `Dodged ${r.dodged}. Get ${DODGES_PER_CIG} to make a dent in the habit.`, quit ? 'good' : '');
+    : r.dodged >= dodgesPerCig() ? `Dodged ${r.dodged}! You're already smoke-free.`
+    : `Dodged ${r.dodged}. Get ${dodgesPerCig()} to make a dent in the habit.`, quit ? 'good' : '');
   renderGym();
   renderMap();
   passTime(DAYS_PER_EVENT);
@@ -2090,6 +2660,7 @@ const TRAFFIC_BASE = 0.08;       // chance per trip in that month
 const TRAFFIC_GROWTH = 0.02;     // added each month after
 const TRAFFIC_MAX = 0.3;
 const HOSPITAL_BILL = 150;
+const hospitalBill = () => hasDegree('medical') ? HOSPITAL_BILL / 2 : HOSPITAL_BILL;   // Medicine halves it
 // Grid in CSS px: row 0 is the far curb (the goal), the last row is where you start, and the median is safe
 const TR = { cell: 30, cols: 10, rows: 11, median: 5 };
 TR.w = TR.cell * TR.cols;
@@ -2106,7 +2677,9 @@ const HOPS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 let crossing = null;   // { dest, state: 'playing'|'won'|'crashed', col, row, last, lanes: [{ row, dir, speed, cars: [{ x, w, icon }] }] }
 
 const placeName = k => k === 'home' ? 'home' : `the ${PLACES[k].name}`;
-const trafficChance = () => month < TRAFFIC_FROM ? 0 : Math.min(TRAFFIC_MAX, TRAFFIC_BASE + (month - TRAFFIC_FROM) * TRAFFIC_GROWTH);
+// Civil Engineering halves it
+const trafficChance = () => month < TRAFFIC_FROM ? 0
+  : Math.min(TRAFFIC_MAX, TRAFFIC_BASE + (month - TRAFFIC_FROM) * TRAFFIC_GROWTH) * (hasDegree('civil') ? 0.5 : 1);
 const trafficSpeed = () => Math.min(1.5, 1 + Math.max(0, month - TRAFFIC_FROM) * 0.04);   // cars get faster too
 
 const tcan = $('road');
@@ -2149,7 +2722,7 @@ function startCrossing(dest, x) {
   renderMap();
   beep(300, 0.12, 'square', 0.08);
   setTimeout(() => beep(300, 0.2, 'square', 0.08), 160);
-  $('trafficText').textContent = `Get across to reach ${placeName(dest)}. Get hit and it's a ${fmt(HOSPITAL_BILL)} hospital bill.`;
+  $('trafficText').textContent = `Get across to reach ${placeName(dest)}. Get hit and it's a ${fmt(hospitalBill())} hospital bill.`;
   $('traffic').classList.remove('hidden');
   drawCrossing();
   requestAnimationFrame(crossLoop);
@@ -2264,12 +2837,12 @@ function endCrossing(made) {
     crossing = null;
     if (made) return drive(c.dest);
     // Crashed: you're patched up and back where you started, with a bill that can put you in the red
-    bank -= HOSPITAL_BILL;
+    bank -= hospitalBill();
     save('rtb_bank', bank);
     traveling = false;
     placeBus(loc);
     showLocation();
-    showModal('🚑', 'Crash!', `You got hit in traffic. The hospital patched you up and billed you ${fmt(HOSPITAL_BILL)}. You've got ${fmt(bank)} now, and you're back at ${placeName(loc)}.`, 'Ouch', () => {}, 'bad');
+    showModal('🚑', 'Crash!', `You got hit in traffic. The hospital patched you up and billed you ${fmt(hospitalBill())}. You've got ${fmt(bank)} now, and you're back at ${placeName(loc)}.`, 'Ouch', () => {}, 'bad');
   }, made ? 600 : 1100);
 }
 
@@ -2308,6 +2881,11 @@ const CARD_PRICE = 500;
 const CARD_LIMITS = [500, 1000, 2000, 5000];
 const CARD_SCORES = [0, 580, 670, 740];   // credit score needed for each limit
 const CARD_RATE = 0.005;                  // daily interest on a negative balance
+const FINANCE_SAVE_BONUS = 0.001;         // a Finance degree adds this to the savings rate
+const FINANCE_DISCOUNT = 0.75;            // and multiplies loan and card interest by this
+const saveRate = () => SAVE_RATE + (hasDegree('finance') ? FINANCE_SAVE_BONUS : 0);
+const cardRate = () => CARD_RATE * (hasDegree('finance') ? FINANCE_DISCOUNT : 1);
+const loanRate = t => t.rate * (hasDegree('finance') ? FINANCE_DISCOUNT : 1);
 
 let cardLimit = load('rtb_card', 0);   // 0 = no card
 const spendable = () => bank + cardLimit;   // how far you can spend, card included
@@ -2361,7 +2939,7 @@ function renderBank(resetInputs = false) {
     `📊 Credit ${score} · ${t.name}`, next ? `Next: ${next.name} at ${next.min}` : 'Top tier', (score - 300) / 550 * 100,
     `Jobs ${signed(p.jobs)} · Ranks ${signed(p.ranks)} · Repayment ${signed(p.history)} · Money ${signed(p.money)}`);
   $('saveHead').textContent = `🐷 Savings: ${fmt(savings)}`;
-  $('saveDesc').textContent = `Earns ${ratePct(SAVE_RATE)} a day (about 6% a month). If your cash can't cover rent, the rest comes out of savings.`;
+  $('saveDesc').textContent = `Earns ${ratePct(saveRate())} a day (about ${Math.round(((1 + saveRate()) ** DAYS_PER_MONTH - 1) * 100)}% a month). If your cash can't cover rent, the rest comes out of savings.`;
   $('deposit').disabled = bank < 1;
   $('withdraw').disabled = Math.round(savings) < 1;
   const lb = $('loanBtn');
@@ -2373,7 +2951,7 @@ function renderBank(resetInputs = false) {
     lb.disabled = bank < 1;
   } else if (t.limit) {
     $('loanHead').textContent = `💸 Borrow up to ${fmt(t.limit)}`;
-    $('loanDesc').textContent = `${ratePct(LOAN_FEE)} fee up front, then ${ratePct(t.rate)} interest a day. Due in ${LOAN_DAYS} days. One loan at a time.`;
+    $('loanDesc').textContent = `${ratePct(LOAN_FEE)} fee up front, then ${ratePct(loanRate(t))} interest a day. Due in ${LOAN_DAYS} days. One loan at a time.`;
     lb.textContent = 'Borrow';
     lb.disabled = false;
   } else {
@@ -2384,7 +2962,7 @@ function renderBank(resetInputs = false) {
   const ci = CARD_LIMITS.indexOf(cardLimit), nextLimit = CARD_LIMITS[ci + 1], need = CARD_SCORES[ci + 1];
   $('cardHead').textContent = cardLimit ? `💳 Card limit: ${fmt(cardLimit)}` : '💳 No credit card';
   $('cardDesc').textContent = !cardLimit ? `Buy one at the Store for ${fmt(CARD_PRICE)} to spend below zero.`
-    : (bank < 0 ? `You're ${fmt(-bank)} into it, at ${ratePct(CARD_RATE)} a day. Deposit cash to pay it down. ` : `${ratePct(CARD_RATE)} interest a day while you're below zero. `)
+    : (bank < 0 ? `You're ${fmt(-bank)} into it, at ${ratePct(cardRate())} a day. Deposit cash to pay it down. ` : `${ratePct(cardRate())} interest a day while you're below zero. `)
       + (nextLimit ? `Upgrade to ${fmt(nextLimit)} with a credit score of ${need}${score < need ? ` (you have ${score})` : ''}.` : 'That\'s the top limit.');
   $('cardRow').classList.toggle('hidden', !cardLimit || !nextLimit);
   $('cardUp').textContent = nextLimit ? `Upgrade to ${fmt(nextLimit)}` : '';
@@ -2448,7 +3026,7 @@ function loanAction() {
   if (!t.limit) return;
   if (amt < 1 || amt > t.limit) return setKMsg(`You can borrow ${fmt(1)} to ${fmt(t.limit)}.`, 'bad');
   bank += amt;
-  loan = { bal: amt * (1 + LOAN_FEE), rate: t.rate, due: today() + LOAN_DAYS };
+  loan = { bal: amt * (1 + LOAN_FEE), rate: loanRate(t), due: today() + LOAN_DAYS };
   bankDone(`Borrowed ${fmt(amt)}. You owe ${fmt(Math.ceil(loan.bal))} with the fee, due in ${LOAN_DAYS} days.`);
 }
 
@@ -2549,9 +3127,9 @@ function saveCalendar() { save('rtb_month', month); save('rtb_day', day); }
 function passTime(days) {
   // Interest compounds every day
   for (let i = 0; i < days; i++) {
-    savings *= 1 + SAVE_RATE;
+    savings *= 1 + saveRate();
     if (loan) loan.bal *= 1 + loan.rate;
-    if (cardLimit && bank < 0) bank -= Math.ceil(-bank * CARD_RATE);   // card interest, whole dollars
+    if (cardLimit && bank < 0) bank -= Math.ceil(-bank * cardRate());   // card interest, whole dollars
   }
   save('rtb_bank', bank);
   day += days;
@@ -2619,6 +3197,15 @@ function restartGame() {
   saveBar();
   saveDrink();
   savings = 0;
+  clubs = 0;
+  save('rtb_club', 0);
+  degrees = [];
+  degXp = { stats: 0, finance: 0, medical: 0, civil: 0 };
+  major = 'stats';
+  saveUni();
+  mix = null;
+  mug = null;
+  $('mugBox').classList.add('hidden');
   cardLimit = 0;
   save('rtb_card', 0);
   loan = null;
