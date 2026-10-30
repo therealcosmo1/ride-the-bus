@@ -974,7 +974,7 @@ function brokeDest() { return savings >= 1 ? 'bank' : officeJob ? 'home' : !unem
 $('goWork').onclick = () => travel(brokeDest());
 $('startOver').onclick = () => {
   if (playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking()) return alert('Finish what you\'re doing first.');
-  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, no degrees, no girlfriend, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
+  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, no degrees, no ${bf() ? 'boyfriend' : 'girlfriend'}, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
   restartGame();
 };
 $('resetHigh').onclick = () => {
@@ -1184,6 +1184,7 @@ function renderStore() {
   kb.onclick = buyClub;
   club.append(kb);
   box.append(club);
+  if (bf()) return renderPart(box);
   // Bouquet: saves your relationship from one breakup
   const fl = document.createElement('div');
   fl.className = 'item';
@@ -1198,6 +1199,39 @@ function renderStore() {
   fb.onclick = buyBouquet;
   fl.append(fb);
   box.append(fl);
+}
+
+// Electrical Engineering replaces the bouquet with parts for your boyfriend, one at a time
+function renderPart(box) {
+  const pt = PARTS[Math.min(parts, PARTS.length - 1)], all = parts >= PARTS.length;
+  const el = document.createElement('div');
+  el.className = 'item';
+  el.innerHTML = `<div class="icon">${pt.icon}</div>
+    <div><div><span class="name">${all ? 'Fully wired' : pt.name}</span>${all ? '' : `<span class="price">${fmt(pt.price)}</span>`}</div>
+    <div class="desc">${all ? `He has every part. Your boyfriend makes ${fmt(partnerIncome())} a day.`
+      : `A gift for your boyfriend's projects. He earns +${pt.boost}× more a day, for good (${fmt(partnerIncome())} → ${fmt(partnerIncome(parts + 1))}).`}</div>
+    <div class="owned">Parts: ${PARTS.slice(0, parts).map(x => x.icon).join(' ') || 'none yet'}</div></div>`;
+  const b = document.createElement('button');
+  b.className = 'gold';
+  b.textContent = all ? 'Done' : 'Buy';
+  b.disabled = all || spendable() < pt.price;
+  b.onclick = buyPart;
+  el.append(b);
+  box.append(el);
+}
+
+function buyPart() {
+  const pt = PARTS[parts];
+  if (!pt || spendable() < pt.price) return;
+  bank -= pt.price;
+  save('rtb_bank', bank);
+  parts++;
+  save('rtb_parts', parts);
+  ching();
+  setSMsg(`${pt.icon} Bought a ${pt.name}. ${gf ? gfName() : 'Your boyfriend'} now makes ${fmt(partnerIncome())} a day.`, 'good');
+  renderStore();
+  renderStats();
+  renderCalendar();
 }
 
 function buyBouquet() {
@@ -2403,6 +2437,9 @@ const DEGREES = {
   finance: { icon: '💼', name: 'Finance', perk: 'Savings earn 0.3% a day instead of 0.2%, and loans and your credit card charge 25% less interest.' },
   medical: { icon: '🩺', name: 'Medicine', perk: 'Hospital bills are halved, smoking withdrawal is half as bad, and 3 gym dodges take a cigarette off instead of 5.' },
   civil: { icon: '🏗️', name: 'Civil Engineering', perk: 'You know the roads: half the chance of traffic on every trip.' },
+  // What it does stays a mystery until you graduate (reveal)
+  ee: { icon: '⚡', name: 'Electrical Engineering', perk: 'Your advisor says it "opens doors". Nobody will say which ones.',
+    reveal: 'Your partner is a boyfriend now: loyal for life, three times the daily cash, and the Store sells parts that make him earn even more.' },
 };
 const PAD_TONES = [330, 392, 494, 587];
 
@@ -2413,10 +2450,11 @@ function loadJSON(key, fallback) {
 function saveJSON(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} }
 
 let degrees = loadJSON('rtb_degrees', []);   // degrees earned, by key
-let degXp = { stats: 0, finance: 0, medical: 0, civil: 0, ...loadJSON('rtb_degxp', {}) };
+let degXp = { stats: 0, finance: 0, medical: 0, civil: 0, ee: 0, ...loadJSON('rtb_degxp', {}) };
 let major = DEGREES[loadJSON('rtb_major', 'stats')] ? loadJSON('rtb_major', 'stats') : 'stats';
 let simon = null;   // study session: { seq, round, idx, phase: 'showing'|'input', major }
 const hasDegree = k => degrees.includes(k);
+const perkOf = k => hasDegree(k) && DEGREES[k].reveal || DEGREES[k].perk;
 function saveUni() { saveJSON('rtb_degrees', degrees); saveJSON('rtb_degxp', degXp); saveJSON('rtb_major', major); }
 
 function setUMsg(text, kind = '') {
@@ -2430,7 +2468,7 @@ function renderUni() {
   $('uniCard').innerHTML = careerCardHTML(
     `🎓 ${degrees.length ? degrees.map(k => DEGREES[k].icon).join(' ') + ` ${degrees.length} degree${degrees.length === 1 ? '' : 's'}` : 'No degrees yet'}`,
     done ? `${d.name} ✓` : `${d.name} XP ${degXp[major]} / ${DEGREE_XP}`,
-    done ? 100 : degXp[major] / DEGREE_XP * 100, `${d.icon} ${d.perk}`);
+    done ? 100 : degXp[major] / DEGREE_XP * 100, `${d.icon} ${perkOf(major)}`);
   const box = $('majors');
   box.innerHTML = '';
   for (const [k, deg] of Object.entries(DEGREES)) {
@@ -2527,7 +2565,23 @@ function endStudy() {
     + (s.party ? ` 🎉 Then a party${lost ? `, which cost you ${lost} XP` : ''}. ${dateAttempt('at a campus party', PARTY_CHANCE)}` : ''), gained ? 'good' : 'bad');
   if (degXp[s.major] >= DEGREE_XP && !hasDegree(s.major)) {
     degrees.push(s.major);
-    showModal('🎓', 'You graduated!', `You earned a degree in ${d.name}. ${d.perk}`, 'Nice', () => {});
+    if (s.major === 'ee' && gf) {
+      // She pulls you aside and may give a new name (blank keeps the old one), then the reveal
+      const was = gfName();
+      showModal('⚡', 'You graduated!', `You earned a degree in ${d.name}. After the ceremony, ${was} pulls you aside: "There's something I need to tell you. I'm really..."`, 'Go on', value => {
+        if (!gf) return;
+        gf.name = value.trim().slice(0, 20) || was;
+        saveGf();
+        const now = gfName();
+        showModal('🚪', now === was ? `${was} is really ${was}` : `${was} is really ${now}`,
+          `Turns out the door this degree opens is ${now}'s closet. ${now} is your boyfriend now: loyal for life, and he chips in ${fmt(partnerIncome())} a day. Pick up parts at the Store to make him earn even more.`, 'Nice', () => {});
+        renderCalendar();
+        if (loc === 'bar') renderBar();
+      }, '', `New name (blank keeps ${was})`);
+      renderCalendar();
+    } else if (s.major === 'ee') {
+      showModal('⚡', 'You graduated!', `You earned a degree in ${d.name}. Turns out the door it opens is a closet. The next person you date will be your boyfriend: loyal for life, with three times the daily cash. Pick up parts at the Store to make him earn even more.`, 'Nice', () => {});
+    } else showModal('🎓', 'You graduated!', `You earned a degree in ${d.name}. ${d.perk}`, 'Nice', () => {});
   }
   saveUni();
   renderUni();
@@ -3665,6 +3719,17 @@ const DUMP_LINES = {
 const dumpLine = k => DUMP_LINES[k][Math.floor(Math.random() * DUMP_LINES[k].length)];
 
 const BOUQUET_PRICE = 200;   // Store item: stops one breakup, then it's used up
+// Electrical Engineering: your partner is a boyfriend, never leaves and earns BF_MULT times as much,
+// plus each part bought at the Store (in order) adds its boost
+const BF_MULT = 3;
+const PARTS = [
+  { icon: '🍞', name: 'Breadboard', price: 300, boost: 1 },
+  { icon: '〰️', name: 'Resistor', price: 1000, boost: 2 },
+  { icon: '🔋', name: 'Capacitor', price: 2500, boost: 3 },
+  { icon: '💡', name: 'LED', price: 5000, boost: 4 },
+];
+const bf = () => hasDegree('ee');
+const partnerIncome = (n = parts) => bf() ? GF_INCOME * (BF_MULT + PARTS.slice(0, n).reduce((t, p) => t + p.boost, 0)) : GF_INCOME;
 
 let gf = loadJSON('rtb_gf', null);   // { name, love, since } or null; since = the today() she got together with you
 let exes = loadJSON('rtb_exes', []);  // names of girlfriends who dumped you
@@ -3673,6 +3738,7 @@ const gfName = () => (gf && gf.name) || 'Darling';
 const SAME_NAME = ['Yes, that one.', 'Yes, that {n}. Again.', 'Your friends have questions.', "She's giving you a second chance. Don't make it weird.", 'Bold move.'];
 if (gf && gf.since === undefined) gf.since = today();   // saves from before this was tracked
 let bouquets = load('rtb_bouquet', 0);
+let parts = load('rtb_parts', 0);    // boyfriend parts bought, in PARTS order
 let redDays = load('rtb_red', 0);    // days in a row with negative cash
 let partyOn = false;                 // next study session ends with a party
 let flirtOn = false;                 // next workout includes flirting
@@ -3684,31 +3750,32 @@ function dateAttempt(where, chance) {
     gf.love = Math.min(LOVE_MAX, gf.love + DATE_LOVE);
     saveGf();
     renderCalendar();
-    return `💕 A date with ${gfName()}. She's ${gf.love}% happy.`;
+    return bf() ? `💙 A date with ${gfName()}. He's loyal for life.` : `💕 A date with ${gfName()}. She's ${gf.love}% happy.`;
   }
   if (Math.random() >= chance) return '💔 No spark this time.';
   gf = { name: '', love: LOVE_MAX, since: today() };
   saveGf();
   [659, 784, 988].forEach((f, i) => setTimeout(() => beep(f, 0.15, 'sine', 0.1), i * 110));
   // Ask her name first, then introduce her (with a jab if an ex had the same name)
-  showModal('💘', 'You hit it off!', `You met someone ${where}. What's her name?`, 'Save', value => {
+  showModal('💘', 'You hit it off!', `You met someone ${where}. What's ${bf() ? 'his' : 'her'} name?`, 'Save', value => {
     if (!gf) return;
     gf.name = value.trim().slice(0, 20) || 'Darling';
     saveGf();
     const repeat = exes.some(x => x.toLowerCase() === gf.name.toLowerCase());
     const jab = repeat ? ' ' + SAME_NAME[Math.floor(Math.random() * SAME_NAME.length)].replace('{n}', gf.name) : '';
-    showModal('💕', `You meet your darling ${gf.name}`,
-      `${gf.name} is your girlfriend now.${jab} She chips in ${fmt(GF_INCOME)} a day. Keep her happy with dates: parties at the University, flirting at the Gym or a drink at the Bar. She'll leave if she goes ${LOVE_MAX / LOVE_DECAY} days without one, and she doesn't like crashes, muggings or a player who stays in the red.`,
+    showModal('💕', `You meet your darling ${gf.name}`, bf()
+      ? `${gf.name} is your boyfriend now.${jab} He chips in ${fmt(partnerIncome())} a day and he's loyal for life: nothing you do will make him leave.`
+      : `${gf.name} is your girlfriend now.${jab} She chips in ${fmt(GF_INCOME)} a day. Keep her happy with dates: parties at the University, flirting at the Gym or a drink at the Bar. She'll leave if she goes ${LOVE_MAX / LOVE_DECAY} days without one, and she doesn't like crashes, muggings or a player who stays in the red.`,
       'Aww', () => {});
     renderCalendar();
     if (loc === 'bar') renderBar();
-  }, '', "Her name");
+  }, '', bf() ? 'His name' : 'Her name');
   renderCalendar();
   return '💘 You hit it off with someone!';
 }
 
 function dumped(why) {
-  if (!gf) return;
+  if (!gf || bf()) return;   // a boyfriend never leaves
   // A bouquet saves the relationship once: she forgives, gets a date's worth of happiness, and the money worry resets
   if (bouquets > 0) {
     bouquets--;
@@ -3737,7 +3804,8 @@ function maybeDumped(chance, why) { if (gf && Math.random() < chance) dumped(why
 function gfDay() {
   redDays = bank < 0 ? redDays + 1 : 0;
   if (!gf) return;
-  bank += GF_INCOME;
+  bank += partnerIncome();
+  if (bf()) return;
   gf.love = Math.max(0, gf.love - LOVE_DECAY);
   if (gf.love === 0) return dumped(`${dumpLine('lonely')} (She waited too long for a date.)`);
   if (redDays > RED_GRACE && Math.random() < RED_DUMP) dumped(`${dumpLine('broke')} (${redDays} days in the red.)`);
@@ -3781,6 +3849,7 @@ function saveAll() {
   saveOffice();
   saveGf();
   save('rtb_bouquet', bouquets);
+  save('rtb_parts', parts);
   saveJSON('rtb_ach', achieved);
 }
 
@@ -3879,9 +3948,10 @@ function renderCalendar() {
     ? `💸 Loan of ${fmt(Math.ceil(loan.bal))} due in ${due} day${due === 1 ? '' : 's'}. Pay it at the Bank.`
     : 'A hand takes 1 day, everything else takes 3. Rent is due at the end of each 30-day month.';
   const g = $('gfNote');
-  g.textContent = gf ? `💕 ${gfName()}: ${gf.love}% happy · +${fmt(GF_INCOME)}/day` + (gf.love < LOVE_LOW ? ' · she wants a date!' : '')
+  g.textContent = gf && bf() ? `💙 ${gfName()}: loyal for life · +${fmt(partnerIncome())}/day`
+    : gf ? `💕 ${gfName()}: ${gf.love}% happy · +${fmt(GF_INCOME)}/day` + (gf.love < LOVE_LOW ? ' · she wants a date!' : '')
     + (bank < 0 ? ` · worried about money (${redDays} day${redDays === 1 ? '' : 's'} in the red)` : '') : '';
-  g.classList.toggle('low', !!gf && (gf.love < LOVE_LOW || redDays > RED_GRACE));
+  g.classList.toggle('low', !!gf && !bf() && (gf.love < LOVE_LOW || redDays > RED_GRACE));
 }
 
 function saveCalendar() { save('rtb_month', month); save('rtb_day', day); }
@@ -3967,6 +4037,8 @@ function restartGame() {
   redDays = 0;
   bouquets = 0;
   save('rtb_bouquet', 0);
+  parts = 0;
+  save('rtb_parts', 0);
   officeJob = officeOffer = false;
   officeXp = 0;
   officeHoops = OFFICE_START_HOOPS;
@@ -3977,7 +4049,7 @@ function restartGame() {
   clubs = 0;
   save('rtb_club', 0);
   degrees = [];
-  degXp = { stats: 0, finance: 0, medical: 0, civil: 0 };
+  degXp = { stats: 0, finance: 0, medical: 0, civil: 0, ee: 0 };
   major = 'stats';
   saveUni();
   mix = null;
