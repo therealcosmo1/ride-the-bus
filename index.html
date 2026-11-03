@@ -124,6 +124,28 @@
   .cal-fill.late { background: var(--red); }
   .cal-note { font-size: 12px; color: var(--muted); text-align: center; }
 
+  /* Health and stress */
+  .vitals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 8px 0 4px; }
+  .vital { display: flex; align-items: center; gap: 6px; font-size: 12px; white-space: nowrap; }
+  .vital .vbar { flex: 1; height: 8px; border-radius: 4px; background: rgba(0,0,0,.35); overflow: hidden; }
+  .vital .vfill { height: 100%; border-radius: 4px; transition: width .4s; }
+  .vfill.hp { background: #e5484d; }
+  .vfill.st { background: #a78bfa; }
+  .vital.warn { color: #ff8a8a; font-weight: 600; }
+  #vitalNote { color: #ff8a8a; margin-top: 4px; }
+  #vitalNote:empty { display: none; }
+
+  /* Cardiac arrest: CPR to the beat */
+  .modal.heart { z-index: 9; overflow-y: auto; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+  .ddr {
+    display: block; width: 100%; max-width: 280px; aspect-ratio: 240 / 300; margin: 0 auto 8px; border-radius: 8px;
+    background: rgba(0,0,0,.35); touch-action: none; cursor: pointer;
+    -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+  #heartScore { min-height: 20px; margin-bottom: 10px; font-weight: 600; }
+  #heartScore.good { color: var(--gold); }
+  #heartScore.bad { color: #ff8a8a; }
+
   .modal {
     position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,.65);
     display: grid; place-items: center; padding: 16px;
@@ -386,6 +408,21 @@
     <div class="cal-bar"><div class="cal-fill" id="calFill"></div></div>
     <div class="cal-note" id="calNote"></div>
     <div class="cal-note" id="gfNote"></div>
+    <div class="vitals">
+      <div class="vital" id="hpWrap"><span>❤️ <b id="hpVal"></b></span><div class="vbar"><div class="vfill hp" id="hpFill"></div></div></div>
+      <div class="vital" id="stWrap"><span>😰 <b id="stVal"></b></span><div class="vbar"><div class="vfill st" id="stFill"></div></div></div>
+    </div>
+    <div class="cal-note" id="vitalNote"></div>
+  </div>
+
+  <div class="modal heart hidden" id="heartBox">
+    <div class="modal-box">
+      <h2>💔 Cardiac arrest!</h2>
+      <p id="heartText"></p>
+      <canvas id="ddr" class="ddr" width="240" height="300"></canvas>
+      <div id="heartScore"></div>
+      <button class="gold" id="heartBtn">Start CPR</button>
+    </div>
   </div>
 
   <div class="modal ach hidden" id="achBox">
@@ -564,7 +601,7 @@
         <button class="pad" data-pad="2">📗</button>
         <button class="pad" data-pad="3">📙</button>
       </div>
-      <div class="row"><button class="gold" id="study"></button><button class="toggle" id="partyBtn"></button></div>
+      <div class="row"><button class="gold" id="study"></button><button class="toggle" id="coffeeBtn"></button><button class="toggle" id="partyBtn"></button></div>
       <div class="shift-info" id="uniInfo"></div>
       <div class="intern hidden" id="internBox">
         <div class="question">💼 Internship</div>
@@ -909,6 +946,7 @@ function guess(k) {
   if (!won) {
     playing = false;
     setMsg(`Wrong! You lost ${fmt(wager)}.`, 'bad');
+    lossStress(wager);
     renderCards(idx, false);
     updateHigh();
     toBet();
@@ -1206,13 +1244,13 @@ function renderStore() {
   kb.onclick = buyClub;
   club.append(kb);
   box.append(club);
-  // Coffee: hints for the office memory game, sold once you've had an office job
-  if (coffeeOk) {
+  // Coffee: more XP per study session, and hints in the office memory game
+  {
     const cf = document.createElement('div');
     cf.className = 'item';
     cf.innerHTML = `<div class="icon">☕</div>
       <div><div><span class="name">Coffee</span><span class="price">${fmt(COFFEE_PRICE)}</span></div>
-      <div class="desc">Sharpens you up at the office. During a shift, drink one to flash a matching pair (or the match for the card you just turned over). Used up when you drink it.</div>
+      <div class="desc">Sharpens you up. At the University, a coffee makes a study session worth ${COFFEE_STUDY} XP per light. At the office, drink one during a shift to flash a matching pair. Used up when you drink it.</div>
       <div class="owned">In your bag: ${coffee}</div></div>`;
     const cb = document.createElement('button');
     cb.className = 'gold';
@@ -1596,6 +1634,8 @@ function startShift() {
   if (boosts.cigs) {
     cigWorked = Math.random() >= cigDudChance();
     cigsSmoked++;
+    hurt(HP_CIG);
+    strain(STRESS.cig);
     if (cigsSmoked >= IRON_LUNG_CIGS) unlock('lung');
     save('rtb_cigs', cigsSmoked);
   } else if (cigsSmoked > 0) {
@@ -1603,13 +1643,17 @@ function startShift() {
   }
   // maxed: full withdrawal for the Iron achievements (judged by the cigarette count, so Medicine doesn't block them)
   const maxed = !boosts.cigs && cigsSmoked >= WITHDRAWAL_CIGS;
-  shift = { burger: 0, length: rankOf(xp).burgers, earned: 0, streak: 0, burnt: 0, flipped: 0, greats: 0, boosts, cigWorked, shaky, maxed };
+  // Calm cooks get a heads-up and a count-in, edgy ones only the heads-up, frazzled ones nothing
+  const cue = stress > STRESS_FRAZZLED ? 'none' : stress > STRESS_EDGY ? 'heads' : 'count';
+  shift = { burger: 0, length: rankOf(xp).burgers, earned: 0, streak: 0, burnt: 0, flipped: 0, greats: 0, boosts, cigWorked, shaky, maxed, cue };
   $('shift').classList.add('hidden');
   renderBag();
   const parts = [];
   if (boosts.cigs) parts.push(cigWorked ? '🚬 A smoke steadies your hands.' : '🚬 You lit up, but felt nothing. Your tolerance is building.');
   if (boosts.wagyu) parts.push('🥩 Wagyu on the grill: double pay, smaller zones.');
   if (shaky) parts.push(`😬 Withdrawal: no smoke today, the needle is ${pct(shaky)} faster.`);
+  if (cue === 'heads') parts.push('😰 Too tense to keep the count: just a heads-up before each burger.');
+  if (cue === 'none') parts.push("😰 You're frazzled: no warning before the needle.");
   setBMsg(parts.join(' ') || 'Clocked in. Watch the grill…', (boosts.cigs && !cigWorked) || shaky ? 'bad' : '');
   renderStats();
   nextBurger();
@@ -1623,26 +1667,52 @@ function nextBurger() {
   $('bq').textContent = 'Sizzling… get ready';
   $('flip').disabled = false;
   renderShiftInfo();
-  // Random wait so the check can't be timed from the previous one
+  // Random wait so the check can't be timed from the previous one. The check is planned now so the
+  // count-in can start before the dial shows when the needle is fast, keeping its beat the same.
+  const wait = 700 + Math.random() * 1300, burger = shift.burger;
+  const st = shift.streak;
+  let good = Math.max(0.06, 0.13 - st * 0.01);
+  let dur = Math.max(700, 1150 - st * 50);
+  if (shift.boosts.wagyu) good *= WAGYU_ZONE;
+  if (shift.cigWorked) dur *= CIGS_SLOWDOWN;
+  if (shift.shaky) dur /= 1 + shift.shaky;   // +50% speed means the turn takes 1/1.5 as long
+  const plan = { start: 0.3 + Math.random() * 0.5, good, great: good * 0.3, dur, t0: performance.now() + wait };
+  if (shift.cue === 'heads') setTimeout(() => {
+    if (!shift || shift.burger !== burger || check) return;
+    $('bq').textContent = 'Ready…';
+    beep(520, 0.06, 'sine', 0.08);
+  }, wait - HEADS_UP_MS);
+  if (shift.cue === 'count') countIn(plan, burger);
   checkTimer = setTimeout(() => {
     setPatty('cooking');
-    const s = shift.streak;
-    let good = Math.max(0.06, 0.13 - s * 0.01);
-    let dur = Math.max(700, 1150 - s * 50);
-    if (shift.boosts.wagyu) good *= WAGYU_ZONE;
-    if (shift.cigWorked) dur *= CIGS_SLOWDOWN;
-    if (shift.shaky) dur /= 1 + shift.shaky;   // +50% speed means the turn takes 1/1.5 as long
-    check = {
-      start: 0.3 + Math.random() * 0.5,
-      good,
-      great: good * 0.3,
-      dur,
-      t0: performance.now(),
-    };
-    $('bq').textContent = 'FLIP IT!';
-    beep(880, 0.12, 'triangle', 0.2);
+    check = plan;   // t0 is the planned time, so a late timer doesn't knock the needle off the count
+    if (shift.cue !== 'count') {
+      $('bq').textContent = 'FLIP IT!';
+      beep(880, 0.12, 'triangle', 0.2);
+    }
     requestAnimationFrame(tick);
-  }, 700 + Math.random() * 1300);
+  }, wait);
+}
+
+const HEADS_UP_MS = 450;   // the "Ready…" cue comes this long before the dial
+const COUNT_GAP = 350;     // count-in beat, the same every burger
+// Tick, tick, flip: two ticks a steady beat apart, with the flip on 3 landing on the middle of
+// the great zone. Scheduled on the audio clock, lined up with when the sound leaves the speaker.
+function countIn(c, burger) {
+  const target = c.t0 + (c.start + c.great / 2) * c.dur;
+  try {
+    beep(1, 0.01, 'sine', 0.001);   // makes sure audio exists
+    const ts = audio.getOutputTimestamp ? audio.getOutputTimestamp() : null;
+    const audioAt = ts && ts.performanceTime > 0
+      ? perf => ts.contextTime + (perf - ts.performanceTime) / 1000
+      : perf => audio.currentTime + (perf - performance.now()) / 1000 - (audio.outputLatency || 0);
+    for (let k = 2; k >= 1; k--) {
+      const at = target - k * COUNT_GAP;
+      cprTone(Math.max(audio.currentTime, audioAt(at)), k === 1 ? 1320 : 990, 0.05, 'square', 0.07, audio.destination);
+      setTimeout(() => { if (shift && shift.burger === burger) $('bq').textContent = `${3 - k}…`; }, at - performance.now());
+    }
+    setTimeout(() => { if (check === c) $('bq').textContent = 'FLIP!'; }, target - performance.now());
+  } catch {}
 }
 
 function tick(now) {
@@ -1724,6 +1794,7 @@ function endShift(text, kind) {
     $('bq').textContent = 'Work another shift, or ride back to the casino.';
     $('shift').textContent = 'Work another shift';
   }
+  strain(STRESS.burger);
   renderStats();
   passTime(DAYS_PER_EVENT);
 }
@@ -1747,6 +1818,16 @@ document.addEventListener('keydown', e => {
       return;
     }
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); $('modalBtn').click(); }
+    return;
+  }
+  if (heart) {
+    if (e.code === 'Space' || e.code === 'Enter') {
+      e.preventDefault();
+      if (heart.state !== 'playing') $('heartBtn').click();
+    } else if (DDR_KEYS[e.code] !== undefined) {
+      e.preventDefault();
+      if (!e.repeat) pump(DDR_KEYS[e.code], e.timeStamp);
+    }
     return;
   }
   if (crossing) {
@@ -1966,6 +2047,7 @@ function endApplication(hired) {
   f.state = hired ? 'won' : 'crashed';
   drawFlappy();
   applying = false;
+  strain(STRESS.apply);
   if (f.mode === 'office') {
     if (hired) {
       officeJob = true;
@@ -2060,9 +2142,9 @@ MIX.ox = (MIX.w - (MIX.r * 2 + (MIX.cols - 1) * MIX.r * 1.5)) / 2;  // left marg
 MIX.top = MIX.hh * 2 + 10;                                         // pair area height
 MIX.h = Math.round(MIX.top + MIX.hh * (MIX.rows + 0.5) + 8);
 const DRINKS = {
-  beer: { icon: '🍺', name: 'Beer', price: 15, luck: 0.15, hands: 3 },
-  whiskey: { icon: '🥃', name: 'Whiskey', price: 35, luck: 0.3, hands: 4 },
-  champagne: { icon: '🍾', name: 'Champagne', price: 75, luck: 0.5, hands: 5 },
+  beer: { icon: '🍺', name: 'Beer', price: 15, luck: 0.15, hands: 3, hp: 3 },
+  whiskey: { icon: '🥃', name: 'Whiskey', price: 35, luck: 0.3, hands: 4, hp: 5 },
+  champagne: { icon: '🍾', name: 'Champagne', price: 75, luck: 0.5, hands: 5, hp: 8 },
 };
 
 let barJob = load('rtb_barjob', 0) === 1;
@@ -2175,6 +2257,7 @@ function buyDrink(k) {
   save('rtb_bank', bank);
   drink = { k, hands: it.hands };
   saveDrink();
+  hurt(it.hp);   // your own drink costs health; one bought for someone else doesn't
   ching();
   setRMsg(`${it.icon} Cheers! Your luck is up for the next ${it.hands} hands.`, 'good');
   renderBar();
@@ -2205,10 +2288,12 @@ function startMix() {
   mix = {
     mode, board: Array.from({ length: MIX.cols }, () => []), total: mode === 'apply' ? BAR_APPLY_DRINKS : r.drinks,
     served: 0, earned: 0, xp: 0, pay: r.pay, tip: r.tip, nextId: 1, over: false,
+    rows: MIX.rows - (frazzled() ? FRAZZLED_ROWS : 0),   // stress shrinks the board from the top
   };
   newDrink();
   newPair();
-  setRMsg(mode === 'shift' ? `Tonight's rush: ${mix.total} drinks.` : '');
+  setRMsg((mode === 'shift' ? `Tonight's rush: ${mix.total} drinks.` : '')
+    + (mix.rows < MIX.rows ? ` 😰 You're frazzled: the board is ${FRAZZLED_ROWS} rows shorter.` : ''), mix.rows < MIX.rows ? 'bad' : '');
   renderBar();
   renderMap();
   drawMix();
@@ -2314,7 +2399,7 @@ function dropPair() {
   while (mergeOnce() || useOnce());   // chain until the board settles
   if (mix.drink.needs.every(n => n.done)) serveDrink();
   if (!mix) return;   // the order was finished
-  if (mix.board.some(col => col.length > MIX.rows)) return endMix(false);
+  if (mix.board.some(col => col.length > mix.rows)) return endMix(false);
   newPair();
   renderBar();
   drawMix();
@@ -2366,6 +2451,7 @@ function endMix(ok) {
   renderBar();
   $('mixWrap').classList.remove('hidden');   // leave the final board on screen
   $('mixInfo').textContent = '';
+  strain(s.mode === 'apply' ? STRESS.apply : STRESS.bar);
   renderMap();
   passTime(DAYS_PER_EVENT);
 }
@@ -2441,10 +2527,12 @@ function drawMix() {
   g.fillRect(0, 0, MIX.w, MIX.top);
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  // Empty cells, and the top row drawn red as the limit
+  // Empty cells, the top usable row drawn red as the limit, and rows lost to stress blacked out
+  const rows = m.rows || MIX.rows;
   for (let c = 0; c < MIX.cols; c++) for (let r = 0; r < MIX.rows; r++) {
     hexPath(g, cellX(c), cellY(c, r), MIX.r - 2);
-    g.strokeStyle = r === MIX.rows - 1 ? 'rgba(255,120,120,.35)' : 'rgba(255,255,255,.09)';
+    if (r >= rows) { g.fillStyle = 'rgba(0,0,0,.45)'; g.fill(); }
+    g.strokeStyle = r === rows - 1 ? 'rgba(255,120,120,.35)' : 'rgba(255,255,255,.09)';
     g.lineWidth = 1.5;
     g.stroke();
   }
@@ -2454,7 +2542,7 @@ function drawMix() {
     const cells = pairCells(m.pair), heights = m.board.map(col => col.length);
     for (const [c, p] of cells) {
       const r = heights[c]++;
-      if (r < MIX.rows) drawPiece(g, p, cellX(c), cellY(c, r), 0.3);
+      if (r < rows) drawPiece(g, p, cellX(c), cellY(c, r), 0.3);
     }
     const p = m.pair, y0 = MIX.top - MIX.hh / 2 - 4;
     if (horizontal(p)) {
@@ -2491,7 +2579,8 @@ mcan.addEventListener('pointerdown', e => {
 });
 
 // ---------- University: Simon Says study sessions toward a degree ----------
-const TUITION = 50;        // per study session
+const TUITION = 150;       // per study session
+const COFFEE_STUDY = 1.5;  // XP per light with a coffee, rounded down for the session
 const DEGREE_XP = 50;      // XP to graduate
 const DEGREES = {
   stats: { icon: '📊', name: 'Statistics', perk: 'The casino shows the odds of every guess.' },
@@ -2545,9 +2634,13 @@ function renderUni() {
     : done ? `You already have ${aAn(d.name)} degree. Pick another to study.`
     : `Study ${d.name}: repeat the lights for as long as you can. They get longer and faster.`;
   $('uniInfo').textContent = simon
-    ? `Round ${simon.round} · Tap the books or press 1–4`
-    : `${fmt(TUITION)} a session, ${DAYS_PER_EVENT} days each. Each round you repeat earns 1 XP.`;
+    ? `Round ${simon.round} · Tap the books or press 1–4` + (simon.coffee ? ` · ☕ ${COFFEE_STUDY} XP per light` : '')
+    : `${fmt(TUITION)} a session, ${DAYS_PER_EVENT} days each. Each round you repeat earns 1 XP (${COFFEE_STUDY} with a coffee).`;
   renderInternship();
+  const cb = $('coffeeBtn');
+  cb.classList.toggle('hidden', !!simon || !coffee);
+  cb.classList.toggle('on', coffeeOn);
+  cb.textContent = `${coffeeOn ? '✓' : '○'} ☕ Coffee (${COFFEE_STUDY}× XP, ${coffee} left)`;
   const pb = $('partyBtn');
   pb.classList.toggle('hidden', !!simon);
   pb.classList.toggle('on', partyOn);
@@ -2570,7 +2663,9 @@ function startStudy() {
   beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
   bank -= TUITION;
   save('rtb_bank', bank);
-  simon = { seq: [Math.floor(Math.random() * 4)], round: 1, idx: 0, phase: 'showing', major, party: partyOn };
+  const caffeinated = coffeeOn && coffee > 0;
+  if (caffeinated) { coffee--; saveOffice(); }
+  simon = { seq: [Math.floor(Math.random() * 4)], round: 1, idx: 0, phase: 'showing', major, party: partyOn, coffee: caffeinated };
   setUMsg('');
   renderUni();
   renderStats();
@@ -2620,9 +2715,10 @@ function endStudy() {
   const rounds = s.round - 1, d = DEGREES[s.major];
   // A party wipes out part of what you'd learned so far in this subject, then the session counts
   const lost = s.party ? Math.ceil(degXp[s.major] * PARTY_XP_CUT) : 0;
-  const gained = rounds;
+  const gained = s.coffee ? Math.floor(rounds * COFFEE_STUDY) : rounds;
+  strain(STRESS.study);
   degXp[s.major] = Math.min(DEGREE_XP, degXp[s.major] - lost + gained);
-  setUMsg(`Wrong light! You repeated ${rounds} round${rounds === 1 ? '' : 's'}: +${gained} ${d.name} XP.`
+  setUMsg(`Wrong light! You repeated ${rounds} round${rounds === 1 ? '' : 's'}: +${gained} ${d.name} XP${s.coffee ? ' ☕' : ''}.`
     + (s.party ? ` 🎉 Then a party${lost ? `, which cost you ${lost} XP` : ''}. ${dateAttempt('at a campus party', PARTY_CHANCE)}` : ''), gained ? 'good' : 'bad');
   if (degXp[s.major] >= DEGREE_XP && !hasDegree(s.major)) {
     degrees.push(s.major);
@@ -2683,7 +2779,7 @@ let officeOffer = load('rtb_offer', 0) === 1;          // won an offer, still ne
 let officeXp = load('rtb_offxp', 0);
 let officeHoops = load('rtb_offhoops', OFFICE_START_HOOPS);   // grows with each firing
 // Coffee (Store, unlocked by your first office job): one use flashes a matching pair in the memory game
-const COFFEE_PRICE = 15;
+const COFFEE_PRICE = 35;
 const HINT_MS = 900;   // how long a hinted pair stays face up
 let coffee = load('rtb_coffee', 0);
 let coffeeOk = load('rtb_coffeeok', 0) === 1 || officeJob;
@@ -2828,6 +2924,7 @@ function drawSlide() {
 
 function endInternship(won) {
   const s = slide;
+  strain(STRESS.intern);
   s.state = won ? 'won' : 'lost';
   drawSlide();
   if (!won) {
@@ -2928,6 +3025,7 @@ function flipCard(i) {
     m.pairs++;
     beep(988, 0.08, 'triangle', 0.1);
     if (m.pairs === OFFICE_ICONS.length) return endOffice();
+    if (frazzled() && Math.random() < FRAZZLED_SHUFFLE) shuffleUnmatched(m, 'stress');
     renderOffice();
     return;
   }
@@ -2939,7 +3037,8 @@ function flipCard(i) {
     if (memo !== m) return;
     a.open = c.open = false;
     m.lock = false;
-    if (drink && Math.random() < DRUNK_SHUFFLE) shuffleUnmatched(m);
+    if (drink && Math.random() < DRUNK_SHUFFLE) shuffleUnmatched(m, 'drunk');
+    else if (frazzled() && Math.random() < FRAZZLED_SHUFFLE) shuffleUnmatched(m, 'stress');
     renderOffice();
   }, officeRank().flip);   // higher ranks give you less time to memorise
 }
@@ -2966,8 +3065,8 @@ function useHint() {
 }
 $('hintBtn').onclick = useHint;
 
-// Drinking on the job: the cards you haven't matched swap places, so what you memorised is wrong
-function shuffleUnmatched(m) {
+// Drinking on the job or too much stress: the cards you haven't matched swap places, so what you memorised is wrong
+function shuffleUnmatched(m, why) {
   const idx = m.cards.map((c, i) => c.done ? -1 : i).filter(i => i >= 0);
   const icons = idx.map(i => m.cards[i].icon);
   for (let i = icons.length - 1; i > 0; i--) {
@@ -2975,7 +3074,8 @@ function shuffleUnmatched(m) {
     [icons[i], icons[j]] = [icons[j], icons[i]];
   }
   idx.forEach((ci, k) => { m.cards[ci].icon = icons[k]; });
-  setHMsg(`${DRINKS[drink.k].icon} Whoa, the cards got shuffled. Maybe don't drink on the job.`, 'bad');
+  setHMsg(why === 'drunk' ? `${DRINKS[drink.k].icon} Whoa, the cards got shuffled. Maybe don't drink on the job.`
+    : '😰 Your mind went blank and the cards blurred together. They got shuffled.', 'bad');
   beep(250, 0.2, 'sawtooth', 0.08);
 }
 
@@ -2987,6 +3087,7 @@ function endOffice() {
   updateHigh();
   beep(1318, 0.15, 'triangle', 0.12);
   setHMsg(`Shift done with ${m.misses} mismatch${m.misses === 1 ? '' : 'es'}. +${fmt(pay)}. ${settleOffice(m.misses)}`, m.misses > OFFICE_BAD_MISSES ? 'bad' : 'good');
+  strain(STRESS.office);
   renderOffice();
   renderMap();
   renderStats();
@@ -3086,9 +3187,11 @@ function throwHand(k) {
     bank -= mug.take;
     save('rtb_bank', bank);
     beep(140, 0.35, 'sawtooth', 0.15);
-    $('mugResult').textContent = `${shown} They took ${fmt(mug.take)}.`;
+    $('mugResult').textContent = `${shown} They took ${fmt(mug.take)} and roughed you up (−${HP_MUGGED} health).`;
     $('mugResult').className = 'bad';
     mug.robbed = true;
+    strain(STRESS.mugged);
+    hurt(HP_MUGGED);
   }
   if (mug.done) {
     $('mugThrows').classList.add('hidden');
@@ -3099,13 +3202,13 @@ function throwHand(k) {
 }
 
 function buyCoffee() {
-  if (!coffeeOk || spendable() < COFFEE_PRICE) return;
+  if (spendable() < COFFEE_PRICE) return;
   bank -= COFFEE_PRICE;
   save('rtb_bank', bank);
   coffee++;
   saveOffice();
   ching();
-  setSMsg('☕ Bought a coffee. Drink it during an office shift for a hint.', 'good');
+  setSMsg('☕ Bought a coffee. Have it with a study session, or during an office shift for a hint.', 'good');
   renderStore();
   renderStats();
 }
@@ -3129,6 +3232,7 @@ $('mugDone').onclick = () => {
   mug = null;
   onDone();
   if (robbed && gf) maybeDumped(MUG_DUMP, dumpLine('mugged'));
+  checkHeart();
 };
 
 // ---------- Gym: membership and a dodging workout ----------
@@ -3315,10 +3419,13 @@ function endWorkout() {
   const quit = Math.min(cigsSmoked, Math.floor(r.dodged / per));
   cigsSmoked -= quit;
   save('rtb_cigs', cigsSmoked);
+  const gain = Math.min(HP_WORKOUT_MAX, HP_WORKOUT + Math.floor(r.dodged / 3));
+  heal(gain);
+  strain(STRESS.workout);
   setGMsg((quit
     ? `Dodged ${r.dodged}! Your cigarette count dropped by ${quit} to ${cigsSmoked}.`
     : r.dodged >= per ? `Dodged ${r.dodged}! You're already smoke-free.`
-    : `Dodged ${r.dodged}. Get ${per} to make a dent in the habit.`)
+    : `Dodged ${r.dodged}. Get ${per} to make a dent in the habit.`) + ` ❤️ +${gain} health.`
     + (!r.flirt ? '' : r.dodged >= FLIRT_MIN ? ` 😉 ${dateAttempt('at the Gym', FLIRT_CHANCE)}`
       : ` 😉 Nobody was impressed. Dodge at least ${FLIRT_MIN} to turn heads.`), quit ? 'good' : '');
   renderGym();
@@ -3534,11 +3641,14 @@ function endCrossing(made) {
     // Crashed: you're patched up and back where you started, with a bill that can put you in the red
     bank -= hospitalBill();
     save('rtb_bank', bank);
+    hurt(HP_CRASH);
+    strain(STRESS.crash);
     traveling = false;
     placeBus(loc);
     showLocation();
     showModal('🚑', 'Crash!', `You got hit in traffic. The hospital patched you up and billed you ${fmt(hospitalBill())}. You've got ${fmt(bank)} now, and you're back at ${placeName(loc)}.`, 'Ouch', () => {}, 'bad');
     if (gf) maybeDumped(CRASH_DUMP, dumpLine('crash'));
+    checkHeart();
   }, made ? 600 : 1100);
 }
 
@@ -3876,12 +3986,14 @@ let bouquets = load('rtb_bouquet', 0);
 let parts = load('rtb_parts', 0);    // boyfriend parts bought, in PARTS order
 let redDays = load('rtb_red', 0);    // days in a row with negative cash
 let partyOn = false;                 // next study session ends with a party
+let coffeeOn = true;                 // have a coffee with the next study session (if you own one)
 let flirtOn = false;                 // next workout includes flirting
 function saveGf() { saveJSON('rtb_gf', gf); save('rtb_red', redDays); saveJSON('rtb_exes', exes); }
 
 // A party, flirt or bought drink happened at `where`. Returns a short line for the location's message.
 function dateAttempt(where, chance) {
   if (gf) {
+    strain(STRESS.date);
     gf.love = Math.min(LOVE_MAX, gf.love + DATE_LOVE);
     saveGf();
     renderCalendar();
@@ -3890,6 +4002,7 @@ function dateAttempt(where, chance) {
   if (Math.random() >= chance) return '💔 No spark this time.';
   gf = { name: '', love: LOVE_MAX, since: today() };
   saveGf();
+  strain(STRESS.date);
   [659, 784, 988].forEach((f, i) => setTimeout(() => beep(f, 0.15, 'sine', 0.1), i * 110));
   // Ask her name first, then introduce her (with a jab if an ex had the same name)
   showModal('💘', 'You hit it off!', `You met someone ${where}. What's ${bf() ? 'his' : 'her'} name?`, 'Save', value => {
@@ -3917,6 +4030,7 @@ function dumped(why) {
     save('rtb_bouquet', bouquets);
     gf.love = Math.max(gf.love, DATE_LOVE);
     redDays = 0;
+    strain(STRESS.scare);
     saveGf();
     [784, 988].forEach((f, i) => setTimeout(() => beep(f, 0.15, 'sine', 0.1), i * 120));
     showModal('💐', 'Saved by flowers', `${why} ...but you handed ${gfName()} a bouquet just in time. She's staying, for now.${bouquets ? ` You have ${bouquets} bouquet${bouquets === 1 ? '' : 's'} left.` : ''}`, 'Phew', () => {});
@@ -3924,6 +4038,7 @@ function dumped(why) {
     return;
   }
   const name = gfName();
+  strain(STRESS.dumped);
   exes.push(name);
   gf = null;
   saveGf();
@@ -3959,7 +4074,300 @@ function buyDrinkFor(k) {
 }
 
 $('partyBtn').onclick = () => { partyOn = !partyOn; renderUni(); };
+$('coffeeBtn').onclick = () => { coffeeOn = !coffeeOn; renderUni(); };
 $('flirtBtn').onclick = () => { flirtOn = !flirtOn; renderGym(); };
+
+// ---------- Health and stress: two 0-100 bars ----------
+// Health falls with smoking, drinking, crashes and muggings, and comes back slowly each day and
+// at the Gym. At 0 your heart stops and you do CPR to the beat. Stress rises with work, study,
+// big losses, crashes, muggings and breakups; smoking, dates, workouts and time bring it down.
+// Stressed out (75+) drains health instead of letting it recover.
+const VITAL_MAX = 100;
+const HP_CIG = 4;              // per cigarette smoked
+const HP_WORKOUT = 3;          // plus 1 per 3 dodges
+const HP_WORKOUT_MAX = 15;
+const HP_CRASH = 25;
+const HP_MUGGED = 10;          // losing to a mugger
+const HP_REGEN = 1;            // per day, unless stressed out
+const HP_LOW = 25;             // warning below this
+const STRESS_HIGH = 75;        // at or above: stressed out
+const STRESS_EDGY = 40;        // above: no count-in ticks at the Burger Joint, just a heads-up
+const STRESS_FRAZZLED = 60;    // above: no warning at all, office cards shuffle, a smaller bar board
+const FRAZZLED_SHUFFLE = 0.2;  // office: chance per turn (two cards) that the unmatched cards shuffle
+const FRAZZLED_ROWS = 3;       // bar: rows lost off the top of the board
+const frazzled = () => stress > STRESS_FRAZZLED;
+const HP_STRESS_DRAIN = 2;     // health lost per day while stressed out
+const STRESS_DECAY = 1;        // per day
+const STRESS = {
+  cig: -8, date: -15, workout: -6,
+  burger: 4, bar: 5, office: 8, study: 5, apply: 3, intern: 3,
+  crash: 10, mugged: 10, dumped: 30, scare: 10,   // scare: a bouquet saved the relationship
+  bigLoss: 20,                 // a hand losing everything you had; smaller losses scale down
+};
+// CPR is a dance-mat rhythm game: arrows fall to the target row and you hit 11 of 16
+const HEART = { notes: 16, need: 11, gap: 500, lead: 1500, window: 140, speed: 0.3, w: 240, h: 300, goal: 264 };
+const DDR_LANES = [
+  { rot: -Math.PI / 2, color: '#c084fc' },   // left
+  { rot: Math.PI, color: '#60a5fa' },        // down
+  { rot: 0, color: '#4ade80' },              // up
+  { rot: Math.PI / 2, color: '#f87171' },    // right
+];
+const DDR_KEYS = { ArrowLeft: 0, KeyA: 0, ArrowDown: 1, KeyS: 1, ArrowUp: 2, KeyW: 2, ArrowRight: 3, KeyD: 3 };
+const HEART_REVIVE = 40;       // health after you bring yourself back
+const HEART_FAIL_HP = 25;      // health after the paramedics do it
+const ARREST_BILL = 500;       // the paramedics' bill (Medicine halves it)
+
+let health = load('rtb_health', VITAL_MAX);
+let stress = load('rtb_stress', 0);
+let heart = null;   // { state: 'ready'|'playing'|'done', t0, notes: [{ lane, t, hit, missed }], hits, flash, said }
+function saveVitals() { save('rtb_health', health); save('rtb_stress', stress); }
+const clampV = v => Math.max(0, Math.min(VITAL_MAX, Math.round(v)));
+function hurt(n) { health = clampV(health - n); saveVitals(); renderCalendar(); }
+function heal(n) { hurt(-n); }
+function strain(n) { stress = clampV(stress + n); saveVitals(); renderCalendar(); }
+// Losing a hand: stress scales with how much of your money it was
+function lossStress(lost) { strain(STRESS.bigLoss * Math.min(1, lost / Math.max(1, bank + lost))); }
+
+// One day passes for the body
+function vitalsDay() {
+  if (stress >= STRESS_HIGH) health = clampV(health - HP_STRESS_DRAIN);
+  else health = clampV(health + HP_REGEN);
+  stress = clampV(stress - STRESS_DECAY);
+}
+
+function renderVitals() {
+  $('hpVal').textContent = health;
+  $('stVal').textContent = stress;
+  $('hpFill').style.width = health + '%';
+  $('stFill').style.width = stress + '%';
+  $('hpWrap').classList.toggle('warn', health < HP_LOW);
+  $('stWrap').classList.toggle('warn', stress >= STRESS_HIGH);
+  $('vitalNote').textContent = stress >= STRESS_HIGH ? `😰 Stressed out: losing ${HP_STRESS_DRAIN} health a day. Smoke, date or work out to calm down.`
+    : health < HP_LOW ? '❤️ Health is low. Ease off the smokes and drinks, or work out at the Gym.' : '';
+}
+
+const arrestBill = () => hasDegree('medical') ? ARREST_BILL / 2 : ARREST_BILL;
+const busy = () => playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking() || mug;
+
+// Health hit 0: once nothing else is going on, the heart stops
+function checkHeart() {
+  if (health > 0 || heart || busy()) return;
+  heart = { state: 'ready', notes: [], hits: 0, flash: [-1e9, -1e9, -1e9, -1e9], said: '' };
+  beep(110, 0.6, 'sine', 0.15);
+  $('heartText').textContent = `Your health hit 0 and your heart stopped. Do CPR to the beat: as each arrow falls onto the bottom row, tap anywhere in its lane (or press its arrow key). Hit ${HEART.need} of ${HEART.notes} to bring yourself back. Otherwise the paramedics will, for ${fmt(arrestBill())}.`;
+  $('heartScore').textContent = '';
+  $('heartScore').className = '';
+  $('heartBtn').textContent = 'Start CPR';
+  $('heartBtn').classList.remove('hidden');
+  $('heartBox').classList.remove('hidden');
+  drawDdr(performance.now());
+  renderMap();
+}
+
+// ---- CPR music: 120 BPM in A minor, one beat per arrow gap, scheduled on the audio clock ----
+// Bars: count-in, then Am F G E over and over. Kick on every beat, snare on 2 and 4, driving
+// eighth-note bass, off-beat hats, and a heart-monitor blip on each count-in beat.
+const CPR_CHORDS = [[110, 220, 261.6, 329.6], [87.3, 174.6, 220, 261.6], [98, 196, 246.9, 293.7], [82.4, 164.8, 207.7, 246.9]];
+
+function cprTone(at, freq, dur, type, vol, out, slideTo) {
+  const o = audio.createOscillator(), g = audio.createGain();
+  o.type = type;
+  o.frequency.setValueAtTime(freq, at);
+  if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, at + dur);
+  g.gain.setValueAtTime(vol, at);
+  g.gain.exponentialRampToValueAtTime(0.001, at + dur);
+  o.connect(g).connect(out);
+  o.start(at);
+  o.stop(at + dur + 0.02);
+}
+
+function cprNoise(at, dur, vol, out, hp) {
+  const len = Math.ceil(audio.sampleRate * dur), buf = audio.createBuffer(1, len, audio.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  const src = audio.createBufferSource(), f = audio.createBiquadFilter(), g = audio.createGain();
+  src.buffer = buf;
+  f.type = 'highpass';
+  f.frequency.value = hp;
+  g.gain.setValueAtTime(vol, at);
+  g.gain.exponentialRampToValueAtTime(0.001, at + dur);
+  src.connect(f).connect(g).connect(out);
+  src.start(at);
+}
+
+// Schedules the whole track starting at audio time `start`; returns the master gain so it can be faded out
+function cprMusic(start, beats) {
+  const out = audio.createGain();
+  out.gain.value = 0.8;
+  out.connect(audio.destination);
+  const b = HEART.gap / 1000, lead = Math.round(HEART.lead / HEART.gap);
+  for (let i = 0; i < beats; i++) {
+    const at = start + i * b;
+    if (i < lead) {   // count-in: monitor blips getting the tempo across
+      cprTone(at, 988, 0.09, 'square', 0.07, out);
+      cprNoise(at + b / 2, 0.03, 0.05, out, 7000);
+      continue;
+    }
+    const bar = Math.floor((i - lead) / 4), beat = (i - lead) % 4, chord = CPR_CHORDS[bar % 4];
+    cprTone(at, 150, 0.16, 'sine', 0.5, out, 40);                         // kick
+    if (beat % 2) cprNoise(at, 0.12, 0.18, out, 1500);                    // snare on 2 and 4
+    cprNoise(at + b / 2, 0.03, 0.06, out, 7000);                          // off-beat hat
+    for (const half of [0, 1]) cprTone(at + half * b / 2, chord[0], b / 2 * 0.9, 'sawtooth', 0.07, out);   // bass
+    // Urgent arpeggio in sixteenths, louder toward the end of each bar
+    for (let k = 0; k < 4; k++) cprTone(at + k * b / 4, chord[1 + (k + beat) % 3] * 2, b / 4 * 0.8, 'square', 0.02 + beat * 0.006, out);
+  }
+  return out;
+}
+
+function stopCprMusic() {
+  const m = heart && heart.music;
+  if (!m) return;
+  heart.music = null;
+  try {
+    m.gain.cancelScheduledValues(audio.currentTime);
+    m.gain.setValueAtTime(m.gain.value, audio.currentTime);
+    m.gain.linearRampToValueAtTime(0, audio.currentTime + 0.25);
+    setTimeout(() => m.disconnect(), 400);
+  } catch {}
+}
+
+function startCpr() {
+  const h = heart;
+  h.state = 'playing';
+  h.t0 = performance.now() + 100;   // a little room to schedule the music
+  // Arrows land on the music's beats: line the audio clock up with the arrows' clock,
+  // counting the speaker delay so an arrow reaches the row when you hear its beat
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    audio.resume();
+    const start = audio.currentTime + 0.1;
+    // Best: the browser says when a given audio time comes out of the speaker. Otherwise estimate it.
+    const ts = audio.getOutputTimestamp ? audio.getOutputTimestamp() : null;
+    if (ts && ts.performanceTime > 0) h.t0 = ts.performanceTime + (start - ts.contextTime) * 1000;
+    else h.t0 += (audio.outputLatency || audio.baseLatency || 0) * 1000;
+    h.music = cprMusic(start, Math.round((HEART.lead + HEART.notes * HEART.gap) / HEART.gap) + 4);
+  } catch {}
+  // Random lanes, never the same one twice in a row
+  let lane = -1;
+  for (let i = 0; i < HEART.notes; i++) {
+    lane = (lane + 1 + Math.floor(Math.random() * 3)) % 4;
+    h.notes.push({ lane, t: h.t0 + HEART.lead + i * HEART.gap, hit: false, missed: false });
+  }
+  $('heartBtn').classList.add('hidden');
+  $('heartScore').textContent = `0/${HEART.need}`;
+  requestAnimationFrame(heartLoop);
+}
+
+// A press in a lane counts for that lane's nearest open arrow, if it's within the window
+function pump(lane, t) {
+  const h = heart;
+  if (!h || h.state !== 'playing') return;
+  h.flash[lane] = t;
+  let best = null;
+  for (const n of h.notes) {
+    if (n.lane !== lane || n.hit || n.missed) continue;
+    if (!best || Math.abs(t - n.t) < Math.abs(t - best.t)) best = n;
+  }
+  if (!best || Math.abs(t - best.t) > HEART.window) { beep(160, 0.06, 'square', 0.06); return; }
+  best.hit = true;
+  h.hits++;
+  h.said = Math.abs(t - best.t) < HEART.window / 2 ? 'Perfect!' : 'Good';
+  beep(660 + lane * 110, 0.08, 'sine', 0.12);
+  $('heartScore').textContent = `${h.hits}/${HEART.need} · ${h.said}`;
+}
+
+function heartLoop(t) {
+  const h = heart;
+  if (!h || h.state !== 'playing') return;
+  // Arrows that rose past the window without a press are missed
+  for (const n of h.notes) {
+    if (!n.hit && !n.missed && t > n.t + HEART.window) {
+      n.missed = true;
+      $('heartScore').textContent = `${h.hits}/${HEART.need} · Miss`;
+    }
+  }
+  drawDdr(t);
+  if (h.notes.every(n => n.hit || n.missed)) return endCpr();
+  requestAnimationFrame(heartLoop);
+}
+
+// One arrow pointing up before rotation, about 40px across
+function ddrArrow(g, x, y, lane, fill, alpha = 1) {
+  g.save();
+  g.globalAlpha = alpha;
+  g.translate(x, y);
+  g.rotate(DDR_LANES[lane].rot);
+  g.beginPath();
+  [[0, -20], [19, -1], [8, -1], [8, 19], [-8, 19], [-8, -1], [-19, -1]].forEach(([px, py], i) => i ? g.lineTo(px, py) : g.moveTo(px, py));
+  g.closePath();
+  if (fill) { g.fillStyle = fill; g.fill(); }
+  g.lineWidth = 3;
+  g.strokeStyle = fill ? '#fff' : 'rgba(255,255,255,.5)';
+  g.stroke();
+  g.restore();
+}
+
+function drawDdr(t) {
+  const g = $('ddr').getContext('2d'), h = heart, lw = HEART.w / 4;
+  g.clearRect(0, 0, HEART.w, HEART.h);
+  for (let l = 0; l < 4; l++) {
+    const x = lw * l + lw / 2;
+    // Lane: a faint glow while pressed, and a divider line on its left
+    const lit = h && t - h.flash[l] < 120;
+    if (lit) { g.fillStyle = DDR_LANES[l].color + '33'; g.fillRect(lw * l, 0, lw, HEART.h); }
+    if (l) { g.fillStyle = 'rgba(255,255,255,.15)'; g.fillRect(lw * l - 1, 0, 2, HEART.h); }
+    // Target row: outlines that light up when pressed
+    ddrArrow(g, x, HEART.goal, l, lit ? DDR_LANES[l].color : null, lit ? 0.6 : 1);
+  }
+  if (!h) return;
+  for (const n of h.notes) {
+    if (n.hit) continue;
+    const y = HEART.goal - (n.t - t) * HEART.speed;   // falls from above
+    if (y > HEART.h + 30 || y < -30) continue;
+    ddrArrow(g, lw * n.lane + lw / 2, y, n.lane, DDR_LANES[n.lane].color, n.missed ? 0.3 : 1);
+  }
+}
+
+function endCpr() {
+  const h = heart;
+  h.state = 'done';
+  stopCprMusic();
+  const ok = h.hits >= HEART.need;
+  if (ok) {
+    health = HEART_REVIVE;
+    beep(1046, 0.12, 'triangle', 0.12);
+    $('heartScore').textContent = `${h.hits}/${HEART.notes} arrows. Your heart's beating again! Health ${health}.`;
+  } else {
+    health = HEART_FAIL_HP;
+    bank -= arrestBill();
+    save('rtb_bank', bank);
+    beep(140, 0.35, 'sawtooth', 0.15);
+    $('heartScore').textContent = `${h.hits}/${HEART.notes} arrows. The paramedics brought you back and billed you ${fmt(arrestBill())}. Health ${health}.`;
+  }
+  $('heartScore').className = ok ? 'good' : 'bad';
+  saveVitals();
+  $('heartBtn').textContent = 'Continue';
+  $('heartBtn').classList.remove('hidden');
+  $('heartBtn').focus();
+  renderStats();
+}
+
+$('heartBtn').onclick = () => {
+  if (!heart) return;
+  if (heart.state === 'ready') return startCpr();
+  if (heart.state !== 'done') return;
+  heart = null;
+  $('heartBox').classList.add('hidden');
+  renderStats();
+  if (loc === 'bank') renderBank();
+};
+// A tap anywhere on the overlay counts for the lane it lines up with, measured on the board,
+// so taps above, below or beside it still land (taps left or right of it go to the outer lanes)
+$('heartBox').addEventListener('pointerdown', e => {
+  if (!heart || heart.state !== 'playing' || e.target.closest('button')) return;
+  e.preventDefault();
+  const r = $('ddr').getBoundingClientRect();
+  pump(Math.min(3, Math.max(0, Math.floor((e.clientX - r.left) / r.width * 4))), e.timeStamp);
+});
 
 // ---------- Save codes: export and import all progress ----------
 // The code is every rtb_ storage key as JSON, base64 encoded (UTF-8 safe, so names with emoji survive)
@@ -3986,6 +4394,7 @@ function saveAll() {
   saveGf();
   save('rtb_bouquet', bouquets);
   save('rtb_parts', parts);
+  saveVitals();
   saveJSON('rtb_ach', achieved);
 }
 
@@ -4037,7 +4446,7 @@ function openSave() {
 function importSave() {
   const data = decodeSave($('saveIn').value);
   if (!data) return setSaveMsg("That doesn't look like a save code.", 'bad');
-  if (playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking()) return setSaveMsg('Finish what you\'re doing first.', 'bad');
+  if (playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking() || heart) return setSaveMsg('Finish what you\'re doing first.', 'bad');
   try {
     Object.keys(localStorage).filter(k => k.startsWith('rtb_')).forEach(k => localStorage.removeItem(k));
     for (const [k, v] of Object.entries(data)) localStorage.setItem(k, v);
@@ -4087,6 +4496,7 @@ function renderCalendar() {
     : gf ? `💕 ${gfName()}: ${gf.love}% happy · +${fmt(GF_INCOME)}/day` + (gf.love < LOVE_LOW ? ' · she wants a date!' : '')
     + (bank < 0 ? ` · worried about money (${redDays} day${redDays === 1 ? '' : 's'} in the red)` : '') : '';
   g.classList.toggle('low', !!gf && !bf() && (gf.love < LOVE_LOW || redDays > RED_GRACE));
+  renderVitals();
 }
 
 function saveCalendar() { save('rtb_month', month); save('rtb_day', day); }
@@ -4095,12 +4505,14 @@ function passTime(days) {
   // Interest compounds every day, and a girlfriend's day plays out
   for (let i = 0; i < days; i++) {
     gfDay();
+    vitalsDay();
     savings *= 1 + saveRate();
     if (loan) loan.bal *= 1 + loan.rate;
     if (cardLimit && bank < 0) bank -= Math.ceil(-bank * cardRate());   // card interest, whole dollars
   }
   save('rtb_bank', bank);
   saveGf();
+  saveVitals();
   day += days;
   if (loan && today() >= loan.due) collectLoan();
   saveBank();
@@ -4135,6 +4547,7 @@ function passTime(days) {
   if (gf && today() - gf.since >= TOGETHER_DAYS) unlock('together');
   renderStats();
   if (loc === 'bank') renderBank();
+  setTimeout(checkHeart);   // after the activity that called this has finished tidying up
 }
 
 function restartGame() {
@@ -4184,6 +4597,7 @@ function restartGame() {
   saveOffice();
   slide = memo = null;
   partyOn = flirtOn = false;
+  coffeeOn = true;
   saveGf();
   clubs = 0;
   save('rtb_club', 0);
@@ -4194,6 +4608,12 @@ function restartGame() {
   mix = null;
   mug = null;
   $('mugBox').classList.add('hidden');
+  health = VITAL_MAX;
+  stress = 0;
+  stopCprMusic();
+  heart = null;
+  saveVitals();
+  $('heartBox').classList.add('hidden');
   cardLimit = 0;
   save('rtb_card', 0);
   loan = null;
@@ -4240,6 +4660,7 @@ renderAchBtn();
 if (cigsSmoked >= IRON_LUNG_CIGS) unlock('lung');   // saves from before achievements existed
 // Page was closed with rent still due
 if (day >= DAYS_PER_MONTH) passTime(0);
+checkHeart();   // page was closed with health at 0
 </script>
 </body>
 </html>
