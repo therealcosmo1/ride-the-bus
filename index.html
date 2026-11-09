@@ -159,6 +159,7 @@
   .modal-box h2 { margin: 10px 0 6px; color: var(--gold); }
   .modal-box p { margin: 0 0 18px; color: var(--muted); line-height: 1.45; }
   .modal.bad .modal-box { border-color: var(--red); }
+  #modalAlt { margin-left: 8px; }
   .modal-input {
     display: block; width: 100%; max-width: 220px; margin: -6px auto 16px; font: inherit; font-size: 18px; text-align: center;
     padding: 8px; border-radius: 8px; border: none; background: #fff; color: #111;
@@ -377,6 +378,13 @@
   .ach-list li.got .name { color: var(--gold); }
   .ach-list li:not(.got) { opacity: .6; }
 
+  /* Settings */
+  .modal.settings { z-index: 9; }
+  .set-row { text-align: left; padding: 10px 0 14px; border-top: 1px solid rgba(255,255,255,.08); }
+  .set-row .toggle { width: 100%; margin-bottom: 8px; }
+  .set-row .toggle.on { border-color: #6fa8ff; color: #6fa8ff; }
+  .set-row ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); line-height: 1.4; }
+
   /* Bank */
   .bank-box { background: rgba(0,0,0,.25); border-radius: 10px; padding: 12px; margin-top: 10px; }
   .bank-box .name { font-weight: 700; }
@@ -434,6 +442,23 @@
     </div>
   </div>
 
+  <div class="modal settings hidden" id="setBox">
+    <div class="modal-box">
+      <div class="modal-icon">⚙️</div>
+      <h2>Settings</h2>
+      <div class="set-row">
+        <button class="toggle" id="adaBtn"></button>
+        <ul>
+          <li>The Burger Joint application can't be failed: it's an equal opportunity employer.</li>
+          <li>You can't be fired from the Burger Joint.</li>
+          <li>The grill needle stops at the end of the zone and waits for you, but Burger Joint XP is ×0.75 and the Iron achievements are off.</li>
+          <li>Traffic happens half as often, with a safe lane down the middle of the road.</li>
+        </ul>
+      </div>
+      <button class="gold" id="setClose">Close</button>
+    </div>
+  </div>
+
   <div class="modal mug hidden" id="mugBox">
     <div class="modal-box">
       <div class="modal-icon">🔪</div>
@@ -487,6 +512,7 @@
       <p id="modalText"></p>
       <input id="modalInput" class="modal-input hidden" maxlength="20" autocomplete="off" aria-label="Name">
       <button class="gold" id="modalBtn"></button>
+      <button class="hidden" id="modalAlt"></button>
     </div>
   </div>
 
@@ -555,7 +581,7 @@
       <canvas id="runner" class="runner hidden" width="300" height="200"></canvas>
       <div class="row">
         <button class="gold" id="gymPay"></button>
-        <button class="gold" id="gymStart">🏃 Work out</button>
+        <button class="gold" id="gymStart">👨‍🦽 Work out</button>
         <button class="toggle" id="flirtBtn"></button>
       </div>
       <div class="shift-info" id="gymInfo"></div>
@@ -639,6 +665,11 @@
         <div class="desc" id="cardDesc"></div>
         <div class="row" id="cardRow"><button class="gold" id="cardUp"></button></div>
       </div>
+      <div class="bank-box">
+        <div class="name" id="houseHead"></div>
+        <div class="desc" id="houseDesc"></div>
+        <div class="row" id="houseRow"><button class="gold" id="houseBtn"></button></div>
+      </div>
       <div class="shift-info" id="bankInfo"></div>
     </div>
   </div>
@@ -697,6 +728,7 @@
     <button class="link" id="resetHigh">Reset high score</button>
     <button class="link" id="achBtn">🏆 Achievements</button>
     <button class="link" id="saveBtn">💾 Save code</button>
+    <button class="link" id="setBtn">⚙️ Settings</button>
   </div>
 </div>
 
@@ -910,6 +942,7 @@ function deal() {
   syncWagerControls();
   wager = Number($('wager').value);
   if (wager < 1 || wager > spendable()) return;
+  if (!gambled) { gambled = true; save('rtb_gambled', 1); }
   bank -= wager;
   save('rtb_bank', bank);
   deck = newDeck();
@@ -1015,7 +1048,7 @@ function brokeDest() { return savings >= 1 ? 'bank' : officeJob ? 'home' : !unem
 $('goWork').onclick = () => travel(brokeDest());
 $('startOver').onclick = () => {
   if (playing || shift || applying || simon || mix || working || traveling || interning() || officeWorking()) return alert('Finish what you\'re doing first.');
-  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, no degrees, no ${bf() ? 'boyfriend' : 'girlfriend'}, an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
+  if (!confirm(`Start over? You'll go back to month 1 with ${fmt(START_MONEY)}, no jobs, no degrees, no ${gf && gf.married ? spouseWord() : bf() ? 'boyfriend' : 'girlfriend'}, ${house ? 'no house, ' : ''}an empty bag, no credit card and no bank account. Your high score is kept.`)) return;
   restartGame();
 };
 $('resetHigh').onclick = () => {
@@ -1151,7 +1184,7 @@ const ITEMS = {
   },
   wagyu: {
     icon: '🥩', name: 'Wagyu Burger', price: 50,
-    desc: 'Premium patties. Burgers pay double for 1 shift, but the skill check zones are smaller.',
+    desc: 'Premium patties. Burgers pay triple for 1 shift, but the skill check zones are 40% smaller.',
   },
 };
 
@@ -1414,7 +1447,24 @@ const cigDudChance = () => Math.min(CIG_TOLERANCE_MAX, cigsSmoked * CIG_TOLERANC
 // Medicine halves it
 const withdrawal = () => Math.min(WITHDRAWAL_MAX, cigsSmoked / WITHDRAWAL_CIGS * WITHDRAWAL_MAX) * (hasDegree('medical') ? 0.5 : 1);
 const pct = x => Math.round(x * 100) + '%';
-const WAGYU_PAY = 2;
+// ADA mode (Settings): an easier Burger Joint and safer traffic. A setting, so Start over keeps it.
+const ADA_XP = 0.75;         // Burger Joint XP is scaled by this
+const ADA_TRAFFIC = 0.5;     // traffic chance per stop
+let ada = load('rtb_ada', 0) === 1;
+function renderSettings() {
+  const b = $('adaBtn');
+  b.classList.toggle('on', ada);
+  b.textContent = `♿ ADA mode: ${ada ? 'On' : 'Off'}`;
+}
+$('adaBtn').onclick = () => {
+  ada = !ada;
+  save('rtb_ada', ada ? 1 : 0);
+  renderSettings();
+  renderStats();   // the map's traffic chance
+};
+$('setBtn').onclick = () => { renderSettings(); $('setBox').classList.remove('hidden'); $('setClose').focus(); };
+$('setClose').onclick = () => $('setBox').classList.add('hidden');
+const WAGYU_PAY = 3;          // was 2 until 2026-11-09 (a net loss for nearly everyone)
 const WAGYU_ZONE = 0.6;      // zones shrink to this fraction
 
 let shift = null;   // { burger, length, earned, streak, burnt, flipped, greats, boosts: { cigs, wagyu }, cigWorked, shaky }
@@ -1547,11 +1597,15 @@ function settleCareer(s) {
     xp -= XP_PENALTY;
     line = `−${XP_PENALTY} XP for burning ${s.burnt}.`;
   } else if (s.flipped >= XP_MIN_FLIPS) {
-    const gained = s.flipped + s.greats;   // greats count double
+    const gained = s.ada ? Math.round((s.flipped + s.greats) * ADA_XP) : s.flipped + s.greats;   // greats count double
     xp += gained;
-    line = `+${gained} XP.`;
+    line = `+${gained} XP${s.ada ? ' (♿ ×0.75)' : ''}.`;
   } else {
     line = `No XP: only ${s.flipped} flipped (need ${XP_MIN_FLIPS}).`;
+  }
+  if (xp < 0 && s.ada) {
+    xp = 0;   // ADA mode: they can't fire you
+    line += ` ♿ You can't be fired.`;
   }
   if (xp < 0) {
     xp = 0;
@@ -1570,6 +1624,7 @@ function settleCareer(s) {
     }
   }
   saveCareer();
+  checkHonest();
   return line;
 }
 
@@ -1583,6 +1638,7 @@ function renderShiftInfo() {
       + (shift.boosts.cigs ? (shift.cigWorked ? ' · 🚬' : ' · 🚬 (dud)') : '')
       + (shift.boosts.wagyu ? ' · 🥩' : '')
       + (shift.shaky ? ' · 😬' : '')
+      + (shift.ada ? ' · ♿' : '')
     : `Good flip ${fmt(PAY_GOOD)}, great flip ${fmt(PAY_GREAT)} + streak bonus. Flip ${XP_MIN_FLIPS}+ to earn XP. Burn more than ${MAX_BURNT} and you're sent home and lose XP.`
       + (cigsSmoked ? ` ${smokingNote()}` : '');
 }
@@ -1645,12 +1701,12 @@ function startShift() {
   const maxed = !boosts.cigs && cigsSmoked >= WITHDRAWAL_CIGS;
   // Calm cooks get a heads-up and a count-in, edgy ones only the heads-up, frazzled ones nothing
   const cue = stress > STRESS_FRAZZLED ? 'none' : stress > STRESS_EDGY ? 'heads' : 'count';
-  shift = { burger: 0, length: rankOf(xp).burgers, earned: 0, streak: 0, burnt: 0, flipped: 0, greats: 0, boosts, cigWorked, shaky, maxed, cue };
+  shift = { burger: 0, length: rankOf(xp).burgers, earned: 0, streak: 0, burnt: 0, flipped: 0, greats: 0, boosts, cigWorked, shaky, maxed, cue, ada };
   $('shift').classList.add('hidden');
   renderBag();
   const parts = [];
   if (boosts.cigs) parts.push(cigWorked ? '🚬 A smoke steadies your hands.' : '🚬 You lit up, but felt nothing. Your tolerance is building.');
-  if (boosts.wagyu) parts.push('🥩 Wagyu on the grill: double pay, smaller zones.');
+  if (boosts.wagyu) parts.push('🥩 Wagyu on the grill: triple pay, smaller zones.');
   if (shaky) parts.push(`😬 Withdrawal: no smoke today, the needle is ${pct(shaky)} faster.`);
   if (cue === 'heads') parts.push('😰 Too tense to keep the count: just a heads-up before each burger.');
   if (cue === 'none') parts.push("😰 You're frazzled: no warning before the needle.");
@@ -1717,8 +1773,9 @@ function countIn(c, burger) {
 
 function tick(now) {
   if (!check) return;
-  const pos = (now - check.t0) / check.dur;
-  if (pos > check.start + check.good + 0.03) { resolve(pos, 'miss'); return; }
+  let pos = (now - check.t0) / check.dur;
+  if (shift.ada) pos = Math.min(pos, check.start + check.good);   // ADA mode: the needle waits at the end of the zone
+  else if (pos > check.start + check.good + 0.03) { resolve(pos, 'miss'); return; }
   drawDial(pos);
   requestAnimationFrame(tick);
 }
@@ -1732,8 +1789,10 @@ function hit(e) {
   // The event's own timestamp is when the finger or key actually went down,
   // so a busy frame or slow handler doesn't count against the player
   const at = e && e.timeStamp > check.t0 ? Math.min(e.timeStamp, performance.now()) : performance.now();
-  const pos = (at - check.t0) / check.dur;
-  const d = pos - check.start;
+  let pos = (at - check.t0) / check.dur;
+  let d = pos - check.start;
+  // ADA mode: pressing after the needle stopped is a good flip (clamp d itself, so rounding can't push it past)
+  if (shift.ada && d > check.good) { d = check.good; pos = check.start + check.good; }
   const result = d >= 0 && d < check.great ? 'great' : d >= 0 && d <= check.good ? 'good' : 'miss';
   resolve(pos, result);
 }
@@ -1779,7 +1838,7 @@ function endShift(text, kind) {
   check = null;
   setBMsg(`${text} ${settleCareer(done)}`, kind);
   // Iron achievements: a whole shift at max withdrawal without burning a patty (burning none means it wasn't cut short)
-  if (done.burnt === 0 && done.maxed) {
+  if (done.burnt === 0 && done.maxed && !done.ada) {
     unlock('foal');
     if (done.length === RANKS[RANKS.length - 1].burgers) {
       unlock('horse');
@@ -1806,6 +1865,10 @@ $('kitchen').addEventListener('pointerdown', e => { e.preventDefault(); hit(e); 
 document.addEventListener('keydown', e => {
   if (!$('saveBox').classList.contains('hidden')) {
     if (e.code === 'Escape') $('saveClose').click();
+    return;
+  }
+  if (!$('setBox').classList.contains('hidden')) {
+    if (e.code === 'Escape' || e.code === 'Enter') { e.preventDefault(); $('setClose').click(); }
     return;
   }
   if (!$('achBox').classList.contains('hidden')) {
@@ -1910,6 +1973,7 @@ function renderHome() {
   $('hq').textContent = (unemployed
     ? `No Burger Joint job. Jump through ${hoopsNeeded} hoops to get hired there.`
     : `Home sweet home. You've got a job at the Burger Joint as ${aAn(rankOf(xp).name)}.`)
+    + (house ? ' 🏡 And it\'s yours: no rent.' : '')
     + (officeJob ? ` 💼 Your office job is worked from here.` : '');
   const b = $('apply');
   b.classList.toggle('hidden', !unemployed || applying || officeWorking());
@@ -1939,7 +2003,7 @@ function applyForJob(mode = 'burger') {
   beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
   applying = true;
   // need = hoops to clear: the Burger Joint's count, or the office interview's
-  flappy = { state: 'ready', y: FL.h / 2 - 20, vy: 0, t: 0, last: performance.now(), hoops: [], score: 0, mode, need: mode === 'office' ? officeHoops : hoopsNeeded };
+  flappy = { state: 'ready', y: FL.h / 2 - 20, vy: 0, t: 0, last: performance.now(), hoops: [], score: 0, mode, need: mode === 'office' ? officeHoops : hoopsNeeded, ada: ada && mode === 'burger' };
   spawnHoop(FL.w - 40);   // first hoop starts in view
   setHMsg('');
   renderHome();
@@ -1974,7 +2038,7 @@ function flappyLoop(now) {
     for (const h of f.hoops) {
       // Inside the hoop's column, the bird must be within the opening
       if (Math.abs(h.x - FL.birdX) < FL.post / 2 + FL.r - 4) {
-        if (f.y - FL.r < h.gapY - FL.gap / 2 || f.y + FL.r > h.gapY + FL.gap / 2) return endApplication(false);
+        if (f.y - FL.r < h.gapY - FL.gap / 2 || f.y + FL.r > h.gapY + FL.gap / 2) return endApplication(f.ada);
       }
       if (!h.passed && h.x < FL.birdX - FL.post / 2) {
         h.passed = true;
@@ -1983,7 +2047,7 @@ function flappyLoop(now) {
         if (f.score >= f.need) return endApplication(true);
       }
     }
-    if (f.y + FL.r > FL.h - FL.ground) { f.y = FL.h - FL.ground - FL.r; return endApplication(false); }
+    if (f.y + FL.r > FL.h - FL.ground) { f.y = FL.h - FL.ground - FL.r; return endApplication(f.ada); }
   }
   drawFlappy();
   requestAnimationFrame(flappyLoop);
@@ -2070,8 +2134,16 @@ function endApplication(hired) {
     xp = 0;
     apps = [];
     saveCareer();
-    setHMsg(`You jumped through ${hoopsNeeded} hoops!`, 'good');
-    showModal('🎉', "You're hired!", 'The Burger Joint is taking you on as a Trainee.', 'Go to work', () => { flappy = null; travel('burger'); });
+    const go = () => { flappy = null; travel('burger'); };
+    if (f.ada) {
+      setHMsg(f.score >= f.need ? `You jumped through ${hoopsNeeded} hoops!` : `${f.score}/${hoopsNeeded} hoops, but you're hired anyway.`, 'good');
+      showModal('🤝', 'Equal opportunity employer',
+        `The Burger Joint is an equal opportunity employer${f.score >= f.need ? '' : ', so a few missed hoops don\'t count against you'}. You're hired as a Trainee, and you can't be fired.`,
+        'Go to work', go);
+    } else {
+      setHMsg(`You jumped through ${hoopsNeeded} hoops!`, 'good');
+      showModal('🎉', "You're hired!", 'The Burger Joint is taking you on as a Trainee.', 'Go to work', go);
+    }
   } else {
     beep(140, 0.3, 'sawtooth', 0.15);
     apps.unshift(`${REJECTIONS[Math.floor(Math.random() * REJECTIONS.length)]} (${f.score}/${hoopsNeeded} hoops)`);
@@ -2478,6 +2550,7 @@ function settleBarXp(s, ok) {
     showModal('📉', 'Demoted', `You're back to ${BAR_RANKS[after].name}.`, 'OK', () => {}, 'bad');
   }
   saveBar();
+  checkHonest();
   return line;
 }
 
@@ -3118,6 +3191,7 @@ function settleOffice(misses) {
     else if (after < before) showModal('📉', 'Demoted', `You're back to ${OFFICE_RANKS[after].name}.`, 'OK', () => {}, 'bad');
   }
   saveOffice();
+  checkHonest();
   return line;
 }
 
@@ -3277,7 +3351,7 @@ function renderGym() {
     paid ? `🏋️ Paid for month ${month}` : `💳 Month ${month} fee due`, '', paid ? 100 : 0,
     paid ? 'Work out as much as you like until the month ends.' : `${fmt(GYM_FEE)} gets you in for the rest of the month.`);
   $('gq').textContent = !paid ? `The front desk wants this month's ${fmt(GYM_FEE)} fee before you can work out.`
-    : working ? 'Jump the balls on the floor. Stay down for the ones flying high. It gets fast.'
+    : working ? 'Hop your chair over the balls on the floor. Stay down for the ones flying high. It gets fast.'
     : 'Ready to sweat?';
   $('gymPay').classList.toggle('hidden', paid);
   $('gymPay').textContent = `Pay ${fmt(GYM_FEE)}`;
@@ -3286,11 +3360,11 @@ function renderGym() {
   const fb = $('flirtBtn');
   fb.classList.toggle('hidden', !paid || working);
   fb.classList.toggle('on', flirtOn);
-  fb.textContent = `${flirtOn ? '✓' : '○'} 😉 Flirt (half the benefit, ${FLIRT_MIN}+ dodges)`;
-  $('gymStart').textContent = run ? '🏃 Work out again' : '🏃 Work out';
+  fb.textContent = `${flirtOn ? '✓' : '○'} 😉 Flirt (half the benefit, a try per ${FLIRT_MIN} dodges)`;
+  $('gymStart').textContent = run ? '👨‍🦽 Work out again' : '👨‍🦽 Work out';
   rcan.classList.toggle('hidden', !paid || !run);
   $('gymInfo').textContent = !paid ? (spendable() < GYM_FEE ? `You need ${fmt(GYM_FEE)}. Come back when you have it.` : '')
-    : working ? 'Tap the game or press Space to jump.'
+    : working ? 'Tap the game or press Space to hop.'
     : `🚬 Cigarettes smoked: ${cigsSmoked}. Every ${dodgesPerCig()} dodges takes one off. A workout takes ${DAYS_PER_EVENT} days.`;
 }
 
@@ -3335,6 +3409,7 @@ function runLoop(now) {
     r.t += dt;
     r.speed = Math.min(RUN.maxSpeed, RUN.speed + r.t * RUN.speedUp);
     // Height above the floor
+    r.roll = (r.roll || 0) + r.speed * dt / 12;   // wheel turn (radius 12px)
     r.vy -= RUN.gravity * dt;
     r.y = Math.max(0, r.y + r.vy * dt);
     if (r.y === 0) r.vy = 0;
@@ -3372,6 +3447,41 @@ function runLoop(now) {
   requestAnimationFrame(runLoop);
 }
 
+// A guy in a wheelchair, facing right, drawn with shapes (big canvas emoji can come out blank on Safari).
+// (x, y) is the bottom centre of the player box; roll turns the wheel's spokes.
+function drawWheelchair(c, x, y, roll) {
+  const line = (pts, color, w) => {
+    c.beginPath();
+    c.moveTo(x + pts[0], y + pts[1]);
+    for (let i = 2; i < pts.length; i += 2) c.lineTo(x + pts[i], y + pts[i + 1]);
+    c.strokeStyle = color; c.lineWidth = w; c.lineCap = 'round'; c.lineJoin = 'round';
+    c.stroke();
+  };
+  const disc = (cx, cy, rad, color) => { c.beginPath(); c.arc(x + cx, y + cy, rad, 0, Math.PI * 2); c.fillStyle = color; c.fill(); };
+  // Frame: backrest with a push handle, seat, and the bar down to the front caster and footrest
+  line([-13, -30, -9, -29, -8, -14, 9, -14, 11, -4], '#9aa4ad', 2.5);
+  line([9, -7, 14, -7], '#9aa4ad', 2);
+  disc(11, -3, 3, '#333');
+  // Legs: thigh along the seat, shin down to the footrest
+  line([-4, -17, 8, -17, 11, -9], '#2d4f86', 5);
+  line([10, -8, 15, -8], '#222', 3.5);   // shoe
+  // Torso, head and arm reaching down to the rim
+  line([-4, -18, -3, -29], '#e85d4a', 7);
+  disc(-2, -35, 5, '#f2c39b');
+  c.beginPath(); c.arc(x - 2, y - 36, 5.2, Math.PI * 1.05, Math.PI * 1.95); c.fillStyle = '#4a2f1d'; c.fill();   // hair
+  // Big rear wheel with turning spokes, drawn over the legs like the real thing
+  c.beginPath(); c.arc(x - 3, y - 12, 12, 0, Math.PI * 2);
+  c.strokeStyle = '#222'; c.lineWidth = 3; c.stroke();
+  c.beginPath(); c.arc(x - 3, y - 12, 9.5, 0, Math.PI * 2);
+  c.strokeStyle = '#c9d1d8'; c.lineWidth = 1.5; c.stroke();   // hand rim
+  for (let k = 0; k < 3; k++) {
+    const a = roll + k * Math.PI / 3, dx = Math.cos(a) * 11, dy = Math.sin(a) * 11;
+    line([-3 - dx, -12 - dy, -3 + dx, -12 + dy], '#9aa4ad', 1);
+  }
+  disc(-3, -12, 2, '#9aa4ad');
+  line([-3, -27, 1, -21, 4, -16], '#f2c39b', 3.5);   // arm on the hand rim, in front of the wheel
+}
+
 function drawRunner() {
   const r = run, c = rctx, floor = RUN.ground;
   const bg = c.createLinearGradient(0, 0, 0, RUN.h);
@@ -3387,13 +3497,7 @@ function drawRunner() {
   c.textBaseline = 'middle';
   c.font = `${RUN.size}px system-ui, sans-serif`;
   for (const th of r.things) c.fillText(th.icon, th.x, floor - th.y);
-  // Runner, flipped to face right
-  c.save();
-  c.translate(RUN.px, floor - r.y - RUN.ph / 2);
-  c.scale(-1, 1);
-  c.font = '32px system-ui, sans-serif';
-  c.fillText('🏃', 0, 2);
-  c.restore();
+  drawWheelchair(c, RUN.px, floor - r.y, r.roll || 0);
   c.fillStyle = '#fff';
   c.font = 'bold 16px system-ui, sans-serif';
   c.textBaseline = 'top';
@@ -3426,7 +3530,8 @@ function endWorkout() {
     ? `Dodged ${r.dodged}! Your cigarette count dropped by ${quit} to ${cigsSmoked}.`
     : r.dodged >= per ? `Dodged ${r.dodged}! You're already smoke-free.`
     : `Dodged ${r.dodged}. Get ${per} to make a dent in the habit.`) + ` ❤️ +${gain} health.`
-    + (!r.flirt ? '' : r.dodged >= FLIRT_MIN ? ` 😉 ${dateAttempt('at the Gym', FLIRT_CHANCE)}`
+    + (!r.flirt ? '' : r.dodged >= FLIRT_MIN
+      ? ` 😉 ${gf ? '' : `${flirtRolls(r.dodged)} ${flirtRolls(r.dodged) === 1 ? 'try' : 'tries'} (${pct(flirtChance(r.dodged))}): `}${dateAttempt('at the Gym', flirtChance(r.dodged))}`
       : ` 😉 Nobody was impressed. Dodge at least ${FLIRT_MIN} to turn heads.`), quit ? 'good' : '');
   renderGym();
   renderMap();
@@ -3446,7 +3551,7 @@ const TRAFFIC_MAX = 0.3;
 const HOSPITAL_BILL = 150;
 const hospitalBill = () => hasDegree('medical') ? HOSPITAL_BILL / 2 : HOSPITAL_BILL;   // Medicine halves it
 // Grid in CSS px: row 0 is the far curb (the goal), the last row is where you start, and the median is safe
-const TR = { cell: 30, cols: 10, rows: 11, median: 5 };
+const TR = { cell: 30, cols: 10, rows: 11, median: 5, safe: 5 };   // safe: ADA mode's car-free column (where the bus starts)
 TR.w = TR.cell * TR.cols;
 TR.h = TR.cell * TR.rows;
 const VEHICLES = [   // w in cells
@@ -3465,7 +3570,7 @@ const DRUNK_TRAFFIC = 1.35;   // a drink in your system makes traffic 35% more l
 // Civil Engineering halves it
 const trafficChance = () => month < TRAFFIC_FROM ? 0
   : Math.min(TRAFFIC_MAX, TRAFFIC_BASE + (month - TRAFFIC_FROM) * TRAFFIC_GROWTH)
-    * (hasDegree('civil') ? 0.5 : 1) * (drink ? DRUNK_TRAFFIC : 1);
+    * (hasDegree('civil') ? 0.5 : 1) * (drink ? DRUNK_TRAFFIC : 1) * (ada ? ADA_TRAFFIC : 1);
 // Cars start slow and speed up each month until the traffic chance maxes out; Civil Engineering caps them lower
 const SPEED_START = 0.6, SPEED_TOP = 1.5, CIVIL_SPEED_CAP = 0.75;
 const TRAFFIC_MAX_MONTH = TRAFFIC_FROM + Math.round((TRAFFIC_MAX - TRAFFIC_BASE) / TRAFFIC_GROWTH);   // month 14
@@ -3509,12 +3614,13 @@ function makeLanes() {
 }
 
 function startCrossing(dest, x) {
-  crossing = { dest, state: 'playing', col: Math.floor(TR.cols / 2), row: TR.rows - 1, last: performance.now(), lanes: makeLanes() };
+  crossing = { dest, state: 'playing', col: TR.safe, row: TR.rows - 1, last: performance.now(), lanes: makeLanes(), ada };
   placeBus(dest, x);   // the bus stops between the two locations where traffic hit
   renderMap();
   beep(300, 0.12, 'square', 0.08);
   setTimeout(() => beep(300, 0.2, 'square', 0.08), 160);
-  $('trafficText').textContent = `Get across to reach ${placeName(dest)}. Get hit and it's a ${fmt(hospitalBill())} hospital bill. Tap the sides to move sideways, the middle top or bottom to go forward or back.`;
+  $('trafficText').textContent = `Get across to reach ${placeName(dest)}. Get hit and it's a ${fmt(hospitalBill())} hospital bill. Tap the sides to move sideways, the middle top or bottom to go forward or back.`
+    + (ada ? ' ♿ The walled-off lane straight ahead is closed to cars.' : '');
   $('traffic').classList.remove('hidden');
   drawCrossing();
   requestAnimationFrame(crossLoop);
@@ -3535,7 +3641,7 @@ function hop(dir) {
 // Is a car on the player's square? The boxes are shrunk a little so near misses count as misses
 function crossHit() {
   const c = crossing, lane = c.lanes.find(l => l.row === c.row);
-  if (!lane) return false;
+  if (!lane || (c.ada && c.col === TR.safe)) return false;
   const px = c.col * TR.cell + TR.cell / 2;
   return lane.cars.some(car => Math.abs(car.x - px) < car.w / 2 + TR.cell / 2 - 7);
 }
@@ -3593,6 +3699,18 @@ function drawCrossing() {
       g.restore();
     }
   }
+  // ADA mode: a walled-off lane down the middle that cars pass under
+  if (c.ada) {
+    const x = TR.safe * C;
+    g.fillStyle = '#4a3768';
+    g.fillRect(x, C, C, TR.h - 2 * C);
+    g.fillStyle = '#e8e8e8';
+    g.fillRect(x - 2, C, 3, TR.h - 2 * C);
+    g.fillRect(x + C - 1, C, 3, TR.h - 2 * C);
+    g.fillStyle = 'rgba(255,255,255,.5)';
+    g.font = 'bold 16px system-ui, sans-serif';
+    for (let row = 1; row < TR.rows - 1; row += 2) g.fillText('♿', x + C / 2, row * C + C / 2 + 1);
+  }
   // Faint arrows marking the tap zones: left and right thirds, and the middle's top and bottom halves
   g.save();
   g.globalAlpha = 0.18;
@@ -3646,7 +3764,10 @@ function endCrossing(made) {
     traveling = false;
     placeBus(loc);
     showLocation();
-    showModal('🚑', 'Crash!', `You got hit in traffic. The hospital patched you up and billed you ${fmt(hospitalBill())}. You've got ${fmt(bank)} now, and you're back at ${placeName(loc)}.`, 'Ouch', () => {}, 'bad');
+    // ADA mode had a car-free lane straight up the middle, so getting hit means you left it
+    showModal('🚑', 'Crash!', `You got hit in traffic. The hospital patched you up and billed you ${fmt(hospitalBill())}. You've got ${fmt(bank)} now, and you're back at ${placeName(loc)}.`
+      + (c.ada ? ' You had a safe lane all to yourself. Why would you even do that???' : ''), 'Ouch', () => {}, 'bad');
+    if (c.ada) unlock('darwin');
     if (gf) maybeDumped(CRASH_DUMP, dumpLine('crash'));
     checkHeart();
   }, made ? 600 : 1100);
@@ -3780,6 +3901,14 @@ function renderBank(resetInputs = false) {
   $('cardRow').classList.toggle('hidden', !cardLimit || !nextLimit);
   $('cardUp').textContent = nextLimit ? `Upgrade to ${fmt(nextLimit)}` : '';
   $('cardUp').disabled = score < need;
+  // Locked while single: no price, no button
+  $('houseHead').textContent = house ? '🏡 You own your home' : gf ? `🏡 House: ${fmt(HOUSE_PRICE)}` : '🏡 House';
+  $('houseDesc').textContent = house ? 'No more rent, ever.'
+    : !gf ? 'This is too much of an emotional investment alone.'
+    : `Buy it outright from cash and savings (you have ${fmt(Math.max(0, bank) + savings)}) and never pay rent again. ${gfName()} would love it.`;
+  $('houseRow').classList.toggle('hidden', house || !gf);
+  $('houseBtn').textContent = `Buy for ${fmt(HOUSE_PRICE)}`;
+  $('houseBtn').disabled = Math.max(0, bank) + savings < HOUSE_PRICE;
   $('bankInfo').textContent = 'Banking takes no time. Interest is added every day that passes.';
   if (resetInputs) {
     $('saveAmt').value = Math.max(0, bank) || Math.round(savings) || '';
@@ -3868,6 +3997,33 @@ function upgradeCard() {
   bankDone(`💳 Limit raised: you can spend down to ${fmt(-cardLimit)}.`);
 }
 
+// The house: no more rent, and your partner marries you
+const HOUSE_PRICE = 450000;
+const SPOUSE_MULT = 3;   // a wife or husband brings in this many times a partner's daily income
+let house = load('rtb_house', 0) === 1;
+function buyHouse() {
+  if (house || !gf || Math.max(0, bank) + savings < HOUSE_PRICE) return;
+  // Cash first, then savings
+  const fromCash = Math.min(Math.max(0, bank), HOUSE_PRICE);
+  bank -= fromCash;
+  savings = Math.max(0, savings - (HOUSE_PRICE - fromCash));
+  house = true;
+  save('rtb_house', 1);
+  let wed = '';
+  if (gf) {
+    const before = partnerIncome();
+    gf.married = true;
+    gf.love = LOVE_MAX;
+    saveGf();
+    wed = ` ${gfName()} said yes: ${bf() ? 'he' : 'she'}'s your ${spouseWord()} now, for good, and ${bf() ? 'his' : 'her'} ${fmt(before)} a day becomes ${fmt(partnerIncome())}.`;
+  }
+  [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => beep(f, 0.2, 'triangle', 0.1), i * 140));
+  showModal('🏡', 'Home sweet home', `The keys are yours. No more rent.${wed} You never thought you'd see this day. Everything's looking up from here!`, 'Move in', () => {});
+  unlock('dream');
+  bankDone(`🏡 Bought your house for ${fmt(HOUSE_PRICE)}.`);
+  renderStats();
+}
+$('houseBtn').onclick = buyHouse;
 $('cardUp').onclick = upgradeCard;
 $('deposit').onclick = deposit;
 $('withdraw').onclick = withdraw;
@@ -3887,7 +4043,19 @@ const ACHIEVEMENTS = [
   { id: 'king', icon: '👑', name: 'The Burger King', desc: 'Iron Stallion with 🥩 Wagyu on the grill.' },
   { id: 'together', icon: '💑', name: 'So What Are We?', desc: 'Keep a girlfriend for 6 months.' },
   { id: 'credit', icon: '💳', name: "Credit Where It's Due", desc: 'Upgrade your credit card to the $20,000 limit with a perfect 850 score.' },
+  { id: 'dream', icon: '🏡', name: "Livin' The Dream", desc: 'Buy a house from the Bank for $450,000.' },
+  { id: 'darwin', icon: '🧬', name: 'Darwin Award', desc: 'Leave the ADA safe lane in traffic and get hit anyway.', hidden: true },
+  { id: 'honest', icon: '🌾', name: "It Ain't Much, But It's Honest Work", desc: 'Reach the top rank at the Burger Joint, the Bar and the office in one game without ever placing a bet.' },
 ];
+
+// Honest work: set the first time you Deal in a game; Start over and eviction clear it.
+// Saves from before this existed start clean, since there's no record of their bets.
+let gambled = load('rtb_gambled', 0) === 1;
+function checkHonest() {
+  if (gambled || unemployed || !barJob || !officeJob) return;
+  const top = (x, ranks) => rankIndex(x, ranks) === ranks.length - 1;
+  if (top(xp, RANKS) && top(barXp, BAR_RANKS) && top(officeXp, OFFICE_RANKS)) unlock('honest');
+}
 
 function loadAch() {
   try { const a = JSON.parse(localStorage.getItem('rtb_ach') || '[]'); return Array.isArray(a) ? a : []; }
@@ -3909,9 +4077,9 @@ function renderAchBtn() { $('achBtn').textContent = `🏆 Achievements ${achieve
 
 function showAchievements() {
   $('achList').innerHTML = ACHIEVEMENTS.map(a => {
-    const got = achieved.includes(a.id);
+    const got = achieved.includes(a.id), secret = a.hidden && !got;   // hidden ones stay a mystery until earned
     return `<li class="${got ? 'got' : ''}"><span class="ico">${got ? a.icon : '🔒'}</span>
-      <div><div class="name">${a.name}</div><div class="desc">${a.desc}</div></div></li>`;
+      <div><div class="name">${secret ? '???' : a.name}</div><div class="desc">${secret ? 'Hidden achievement.' : a.desc}</div></div></li>`;
   }).join('');
   $('achBox').classList.remove('hidden');
   $('achClose').focus();
@@ -3925,8 +4093,10 @@ $('achClose').onclick = () => $('achBox').classList.add('hidden');
 // girlfriend; once you have one, the same things count as dates that keep her happy.
 const PARTY_CHANCE = 0.2;      // per party
 const PARTY_XP_CUT = 0.2;      // a party costs this share of the subject's XP from before the session
-const FLIRT_CHANCE = 0.2;      // per workout (it takes twice the dodges per cigarette)
-const FLIRT_MIN = 10;          // dodges needed for the flirting to count
+const FLIRT_CHANCE = 0.2;      // per roll (a flirting workout takes twice the dodges per cigarette)
+const FLIRT_MIN = 10;          // one roll for every this many dodges
+const flirtRolls = dodged => Math.floor(dodged / FLIRT_MIN);
+const flirtChance = dodged => 1 - (1 - FLIRT_CHANCE) ** flirtRolls(dodged);   // chance at least one roll lands
 const DRINK_CHANCE = { beer: 0.1, whiskey: 0.2, champagne: 0.35 };   // buying one for someone
 const GF_INCOME = 15;          // per day
 const LOVE_DECAY = 5;          // happiness lost per day (17 days from full with no dates and she leaves)
@@ -3974,7 +4144,9 @@ const PARTS = [
   { icon: '💡', name: 'LED', price: 5000, boost: 4 },
 ];
 const bf = () => hasDegree('ee');
-const partnerIncome = (n = parts) => bf() ? GF_INCOME * (BF_MULT + PARTS.slice(0, n).reduce((t, p) => t + p.boost, 0)) : GF_INCOME;
+const partnerIncome = (n = parts) => (bf() ? GF_INCOME * (BF_MULT + PARTS.slice(0, n).reduce((t, p) => t + p.boost, 0)) : GF_INCOME)
+  * (gf && gf.married ? SPOUSE_MULT : 1);   // married when you buy the house
+const spouseWord = () => bf() ? 'husband' : 'wife';
 
 let gf = loadJSON('rtb_gf', null);   // { name, love, since } or null; since = the today() she got together with you
 let exes = loadJSON('rtb_exes', []);  // names of girlfriends who dumped you
@@ -3997,6 +4169,7 @@ function dateAttempt(where, chance) {
     gf.love = Math.min(LOVE_MAX, gf.love + DATE_LOVE);
     saveGf();
     renderCalendar();
+    if (gf.married) return `💍 A date with your ${spouseWord()}, ${gfName()}.`;
     return bf() ? `💙 A date with ${gfName()}. He's loyal for life.` : `💕 A date with ${gfName()}. She's ${gf.love}% happy.`;
   }
   if (Math.random() >= chance) return '💔 No spark this time.';
@@ -4023,7 +4196,7 @@ function dateAttempt(where, chance) {
 }
 
 function dumped(why) {
-  if (!gf || bf()) return;   // a boyfriend never leaves
+  if (!gf || bf() || gf.married) return;   // a boyfriend or a spouse never leaves
   // A bouquet saves the relationship once: she forgives, gets a date's worth of happiness, and the money worry resets
   if (bouquets > 0) {
     bouquets--;
@@ -4055,7 +4228,7 @@ function gfDay() {
   redDays = bank < 0 ? redDays + 1 : 0;
   if (!gf) return;
   bank += partnerIncome();
-  if (bf()) return;
+  if (bf() || gf.married) return;
   gf.love = Math.max(0, gf.love - LOVE_DECAY);
   if (gf.love === 0) return dumped(`${dumpLine('lonely')} (She waited too long for a date.)`);
   if (redDays > RED_GRACE && Math.random() < RED_DUMP) dumped(`${dumpLine('broke')} (${redDays} days in the red.)`);
@@ -4396,6 +4569,9 @@ function saveAll() {
   save('rtb_parts', parts);
   saveVitals();
   saveJSON('rtb_ach', achieved);
+  save('rtb_ada', ada ? 1 : 0);
+  save('rtb_gambled', gambled ? 1 : 0);
+  save('rtb_house', house ? 1 : 0);
 }
 
 function exportSave() {
@@ -4481,8 +4657,8 @@ function renderCalendar() {
   const left = Math.max(0, DAYS_PER_MONTH - day);
   $('calMonth').textContent = `📅 Month ${month} · Day ${Math.min(day + 1, DAYS_PER_MONTH)}/${DAYS_PER_MONTH}`;
   const r = $('calRent');
-  r.textContent = left ? `Rent ${fmt(rent)} in ${left} day${left === 1 ? '' : 's'}` : `Rent ${fmt(rent)} due now`;
-  const short = spendable() + savings < rent;   // savings and the card cover rent too
+  r.textContent = house ? '🏡 No rent' : left ? `Rent ${fmt(rent)} in ${left} day${left === 1 ? '' : 's'}` : `Rent ${fmt(rent)} due now`;
+  const short = !house && spendable() + savings < rent;   // savings and the card cover rent too
   r.classList.toggle('short', short);
   const fill = $('calFill');
   fill.style.width = (day / DAYS_PER_MONTH * 100) + '%';
@@ -4490,12 +4666,14 @@ function renderCalendar() {
   const due = loan && loan.due - today();
   $('calNote').textContent = loan
     ? `💸 Loan of ${fmt(Math.ceil(loan.bal))} due in ${due} day${due === 1 ? '' : 's'}. Pay it at the Bank.`
+    : house ? 'A hand takes 1 day, everything else takes 3. You own your home: no rent.'
     : 'A hand takes 1 day, everything else takes 3. Rent is due at the end of each 30-day month.';
   const g = $('gfNote');
-  g.textContent = gf && bf() ? `💙 ${gfName()}: loyal for life · +${fmt(partnerIncome())}/day`
-    : gf ? `💕 ${gfName()}: ${gf.love}% happy · +${fmt(GF_INCOME)}/day` + (gf.love < LOVE_LOW ? ' · she wants a date!' : '')
+  g.textContent = gf && gf.married ? `💍 ${gfName()}: your ${spouseWord()} · +${fmt(partnerIncome())}/day`
+    : gf && bf() ? `💙 ${gfName()}: loyal for life · +${fmt(partnerIncome())}/day`
+    : gf ? `💕 ${gfName()}: ${gf.love}% happy · +${fmt(partnerIncome())}/day` + (gf.love < LOVE_LOW ? ' · she wants a date!' : '')
     + (bank < 0 ? ` · worried about money (${redDays} day${redDays === 1 ? '' : 's'} in the red)` : '') : '';
-  g.classList.toggle('low', !!gf && !bf() && (gf.love < LOVE_LOW || redDays > RED_GRACE));
+  g.classList.toggle('low', !!gf && !bf() && !gf.married && (gf.love < LOVE_LOW || redDays > RED_GRACE));
   renderVitals();
 }
 
@@ -4516,33 +4694,7 @@ function passTime(days) {
   day += days;
   if (loan && today() >= loan.due) collectLoan();
   saveBank();
-  if (day >= DAYS_PER_MONTH) {
-    const rent = rentFor(month);
-    if (spendable() + savings >= rent) {
-      // Cash first, then savings, then the card for the rest
-      const fromCash = Math.max(0, Math.min(bank, rent));
-      const fromSavings = Math.min(savings, rent - fromCash);
-      const fromCard = rent - fromCash - fromSavings;
-      bank -= fromCash + fromCard;
-      savings = Math.max(0, savings - fromSavings);
-      month++;
-      day -= DAYS_PER_MONTH;
-      saveCalendar();
-      saveBank();
-      save('rtb_bank', bank);
-      const parts = [fromSavings >= 0.5 && `${fmt(fromSavings)} from savings`, fromCard > 0 && `${fmt(fromCard)} on your card`].filter(Boolean);
-      showModal('🏠', `Month ${month - 1} is over`,
-        `You paid ${fmt(rent)} in rent` + (parts.length ? ` (${parts.join(', ')})` : '')
-        + ` and have ${fmt(bank)} in cash` + (savings >= 0.5 ? ` and ${fmt(savings)} saved` : '') + ` left. Next month's rent is ${fmt(rentFor(month))}.`
-        + (month === TRAFFIC_FROM ? ` Watch out: from now on, traffic can hold you up when you travel.` : ''),
-        'Keep going', () => (loc === 'casino' ? toBet() : loc === 'bank' ? renderBank(true) : renderStats()));
-    } else {
-      const had = Math.max(0, spendable()) + savings;
-      showModal('📦', 'Evicted!',
-        `Rent for month ${month} was ${fmt(rent)} and you could only cover ${fmt(had)}${savings >= 0.5 || cardLimit ? ' counting savings and your card' : ''}. You lose. Back to month 1 with ${fmt(START_MONEY)} and no jobs. Your high score is kept.`,
-        'Start over', restartGame, 'bad');
-    }
-  }
+  if (day >= DAYS_PER_MONTH) settleRent();
   saveCalendar();
   if (gf && today() - gf.since >= TOGETHER_DAYS) unlock('together');
   renderStats();
@@ -4550,8 +4702,72 @@ function passTime(days) {
   setTimeout(checkHeart);   // after the activity that called this has finished tidying up
 }
 
+// Month over: pay rent, or offer a bank loan that would cover it, or evict
+function settleRent() {
+  if (house) {   // homeowners just roll into the next month
+    month++;
+    day -= DAYS_PER_MONTH;
+    saveCalendar();
+    return;
+  }
+  const rent = rentFor(month);
+  const short = Math.ceil(rent - (spendable() + savings));
+  if (short <= 0) return payRent(rent);
+  const t = CREDIT_TIERS[creditTier()];
+  if (!loan && t.limit >= short) {
+    // A loan for just the shortfall saves you; one loan at a time, so not if you already have one
+    const owe = Math.ceil(short * (1 + LOAN_FEE));
+    showModal('🏦', 'The bank can save you',
+      `Rent for month ${month} is ${fmt(rent)} and you're ${fmt(short)} short${savings >= 0.5 || cardLimit ? ' even counting savings and your card' : ''}. `
+      + `With ${t.name} credit, the bank will lend you ${fmt(short)}: you'd owe ${fmt(owe)} with the fee, at ${ratePct(loanRate(t))} a day, due in ${LOAN_DAYS} days. Take it, or be evicted.`,
+      `Borrow ${fmt(short)}`, () => {
+        bank += short;
+        loan = { bal: short * (1 + LOAN_FEE), rate: loanRate(t), due: today() + LOAN_DAYS };
+        saveBank();
+        payRent(rent);
+        renderStats();
+        if (loc === 'bank') renderBank(true);
+      }, 'bad', null, { label: 'Get evicted', fn: () => evict(rent, true) });
+    return;
+  }
+  evict(rent);
+}
+
+function evict(rent, declined = false) {
+  const had = Math.max(0, spendable()) + savings;
+  const t = CREDIT_TIERS[creditTier()];
+  const why = declined ? ' You turned down the bank.' : loan ? ' The bank won\'t lend more while you have a loan.' : !t.limit ? ' Your credit is too poor for a loan.' : ` The bank would only lend ${fmt(t.limit)}.`;
+  showModal('📦', 'Evicted!',
+    `Rent for month ${month} was ${fmt(rent)} and you could only cover ${fmt(had)}${savings >= 0.5 || cardLimit ? ' counting savings and your card' : ''}.${why} You lose. Back to month 1 with ${fmt(START_MONEY)} and no jobs. Your high score is kept.`,
+    'Start over', restartGame, 'bad');
+}
+
+function payRent(rent) {
+  // Cash first, then savings, then the card for the rest
+  const fromCash = Math.max(0, Math.min(bank, rent));
+  const fromSavings = Math.min(savings, rent - fromCash);
+  const fromCard = rent - fromCash - fromSavings;
+  bank -= fromCash + fromCard;
+  savings = Math.max(0, savings - fromSavings);
+  month++;
+  day -= DAYS_PER_MONTH;
+  saveCalendar();
+  saveBank();
+  save('rtb_bank', bank);
+  const parts = [fromSavings >= 0.5 && `${fmt(fromSavings)} from savings`, fromCard > 0 && `${fmt(fromCard)} on your card`].filter(Boolean);
+  showModal('🏠', `Month ${month - 1} is over`,
+    `You paid ${fmt(rent)} in rent` + (parts.length ? ` (${parts.join(', ')})` : '')
+    + ` and have ${fmt(bank)} in cash` + (savings >= 0.5 ? ` and ${fmt(savings)} saved` : '') + ` left. Next month's rent is ${fmt(rentFor(month))}.`
+    + (month === TRAFFIC_FROM ? ` Watch out: from now on, traffic can hold you up when you travel.` : ''),
+    'Keep going', () => (loc === 'casino' ? toBet() : loc === 'bank' ? renderBank(true) : renderStats()));
+}
+
 function restartGame() {
   bank = START_MONEY;
+  gambled = false;
+  save('rtb_gambled', 0);
+  house = false;
+  save('rtb_house', 0);
   month = 1;
   day = 0;
   save('rtb_bank', bank);
@@ -4635,8 +4851,9 @@ function modalOpen() { return !$('modal').classList.contains('hidden'); }
 const modalQueue = [];   // popups wait their turn if one is already showing
 
 // input: a placeholder string to show a text box; its value is passed to onClose
-function showModal(icon, title, text, btn, onClose, kind = '', input = null) {
-  if (modalOpen()) { modalQueue.push([icon, title, text, btn, onClose, kind, input]); return; }
+// alt: { label, fn } adds a second button (Space and Enter still press the main one)
+function showModal(icon, title, text, btn, onClose, kind = '', input = null, alt = null) {
+  if (modalOpen()) { modalQueue.push([icon, title, text, btn, onClose, kind, input, alt]); return; }
   $('modalIcon').textContent = icon;
   $('modalTitle').textContent = title;
   $('modalText').textContent = text;
@@ -4646,11 +4863,15 @@ function showModal(icon, title, text, btn, onClose, kind = '', input = null) {
   box.classList.toggle('hidden', input === null);
   box.value = '';
   box.placeholder = input || '';
-  $('modalBtn').onclick = () => {
+  const close = fn => () => {
     $('modal').classList.add('hidden');
-    onClose(box.value);
+    fn(box.value);
     if (modalQueue.length) showModal(...modalQueue.shift());
   };
+  $('modalBtn').onclick = close(onClose);
+  const ab = $('modalAlt');
+  ab.classList.toggle('hidden', !alt);
+  if (alt) { ab.textContent = alt.label; ab.onclick = close(alt.fn); }
   (input === null ? $('modalBtn') : box).focus();
 }
 
@@ -4658,6 +4879,7 @@ $('wager').value = Math.min(10, Math.max(1, bank));
 showLocation();
 renderAchBtn();
 if (cigsSmoked >= IRON_LUNG_CIGS) unlock('lung');   // saves from before achievements existed
+checkHonest();
 // Page was closed with rent still due
 if (day >= DAYS_PER_MONTH) passTime(0);
 checkHeart();   // page was closed with health at 0
