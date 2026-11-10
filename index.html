@@ -369,7 +369,7 @@
   #gfNote.low { color: #ff8a8a; font-weight: 600; }
 
   /* Achievements */
-  .modal.ach { z-index: 9; }
+  .modal.ach { z-index: 9; align-items: start; overflow-y: auto; }   /* the list is taller than a phone: scroll to Close */
   .ach-list { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
   .ach-list li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.08); }
   .ach-list .ico { font-size: 24px; }
@@ -379,7 +379,7 @@
   .ach-list li:not(.got) { opacity: .6; }
 
   /* Settings */
-  .modal.settings { z-index: 9; }
+  .modal.settings { z-index: 9; align-items: start; overflow-y: auto; }
   .set-row { text-align: left; padding: 10px 0 14px; border-top: 1px solid rgba(255,255,255,.08); }
   .set-row .toggle { width: 100%; margin-bottom: 8px; }
   .set-row .toggle.on { border-color: #6fa8ff; color: #6fa8ff; }
@@ -581,7 +581,7 @@
       <canvas id="runner" class="runner hidden" width="300" height="200"></canvas>
       <div class="row">
         <button class="gold" id="gymPay"></button>
-        <button class="gold" id="gymStart">👨‍🦽 Work out</button>
+        <button class="gold" id="gymStart">🏃 Work out</button>
         <button class="toggle" id="flirtBtn"></button>
       </div>
       <div class="shift-info" id="gymInfo"></div>
@@ -1461,6 +1461,7 @@ $('adaBtn').onclick = () => {
   save('rtb_ada', ada ? 1 : 0);
   renderSettings();
   renderStats();   // the map's traffic chance
+  if (loc === 'gym') renderGym();
 };
 $('setBtn').onclick = () => { renderSettings(); $('setBox').classList.remove('hidden'); $('setClose').focus(); };
 $('setClose').onclick = () => $('setBox').classList.add('hidden');
@@ -3351,7 +3352,7 @@ function renderGym() {
     paid ? `🏋️ Paid for month ${month}` : `💳 Month ${month} fee due`, '', paid ? 100 : 0,
     paid ? 'Work out as much as you like until the month ends.' : `${fmt(GYM_FEE)} gets you in for the rest of the month.`);
   $('gq').textContent = !paid ? `The front desk wants this month's ${fmt(GYM_FEE)} fee before you can work out.`
-    : working ? 'Hop your chair over the balls on the floor. Stay down for the ones flying high. It gets fast.'
+    : working ? `${run && run.ada ? 'Hop your chair over' : 'Jump'} the balls on the floor. Stay down for the ones flying high. It gets fast.`
     : 'Ready to sweat?';
   $('gymPay').classList.toggle('hidden', paid);
   $('gymPay').textContent = `Pay ${fmt(GYM_FEE)}`;
@@ -3361,10 +3362,10 @@ function renderGym() {
   fb.classList.toggle('hidden', !paid || working);
   fb.classList.toggle('on', flirtOn);
   fb.textContent = `${flirtOn ? '✓' : '○'} 😉 Flirt (half the benefit, a try per ${FLIRT_MIN} dodges)`;
-  $('gymStart').textContent = run ? '👨‍🦽 Work out again' : '👨‍🦽 Work out';
+  $('gymStart').textContent = `${ada ? '👨‍🦽' : '🏃'} Work out${run ? ' again' : ''}`;
   rcan.classList.toggle('hidden', !paid || !run);
   $('gymInfo').textContent = !paid ? (spendable() < GYM_FEE ? `You need ${fmt(GYM_FEE)}. Come back when you have it.` : '')
-    : working ? 'Tap the game or press Space to hop.'
+    : working ? `Tap the game or press Space to ${run && run.ada ? 'hop' : 'jump'}.`
     : `🚬 Cigarettes smoked: ${cigsSmoked}. Every ${dodgesPerCig()} dodges takes one off. A workout takes ${DAYS_PER_EVENT} days.`;
 }
 
@@ -3385,7 +3386,7 @@ function startWorkout() {
   if (!gymPaid() || working) return;
   beep(1, 0.01, 'sine', 0.001); // unlock audio on this tap
   working = true;
-  run = { state: 'ready', y: 0, vy: 0, t: 0, last: performance.now(), speed: RUN.speed, next: 1.2, things: [], dodged: 0, flirt: flirtOn };
+  run = { state: 'ready', y: 0, vy: 0, t: 0, last: performance.now(), speed: RUN.speed, next: 1.2, things: [], dodged: 0, flirt: flirtOn, ada };
   setGMsg('');
   renderGym();
   renderMap();
@@ -3497,7 +3498,16 @@ function drawRunner() {
   c.textBaseline = 'middle';
   c.font = `${RUN.size}px system-ui, sans-serif`;
   for (const th of r.things) c.fillText(th.icon, th.x, floor - th.y);
-  drawWheelchair(c, RUN.px, floor - r.y, r.roll || 0);
+  if (r.ada) drawWheelchair(c, RUN.px, floor - r.y, r.roll || 0);   // ADA mode
+  else {
+    // Runner, flipped to face right
+    c.save();
+    c.translate(RUN.px, floor - r.y - RUN.ph / 2);
+    c.scale(-1, 1);
+    c.font = '32px system-ui, sans-serif';
+    c.fillText('🏃', 0, 2);
+    c.restore();
+  }
   c.fillStyle = '#fff';
   c.font = 'bold 16px system-ui, sans-serif';
   c.textBaseline = 'top';
